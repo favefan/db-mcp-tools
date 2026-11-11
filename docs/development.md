@@ -210,4 +210,4 @@ SCM 测试：管理员终端运行 node scripts/test-windows-service.mjs --origi
 
 安装器迁移的 previous-script 必须来自保存完整资源输入的旧版本原生构建目录；单独下载旧 exe 或拷贝 installer.nsi 不足以复现。缺少旧构建时不运行迁移测试。详见上述 构建与集成测试。
 
-.github 基础工作流仅使用 Windows x64，普通 PR 不需要 Secrets、管理员权限、目标数据库或 Agent 登录；手动打包工作流生成不含 DM 的未签名核验产物，不发布 Release。Windows 托管 runner 不假设可用 Linux 数据库容器。分支保护和安全报告渠道由仓库所有者在 GitHub 配置。
+.github 工作流仅使用 Windows x64。普通 PR 不需要 Secrets、管理员权限、目标数据库或 Agent 登录；手动打包只上传 Actions Artifact，版本标签触发核对、构建、校验和 Release 发布。发布任务通过 GITHUB_TOKEN 获得 contents: write，构建任务保持只读；发布步骤见 [RELEASE](../RELEASE.md#维护者发布流程)。版本门禁可用 `node --test scripts/release-version.test.mjs` 检查。Windows 托管 runner 不假设可用 Linux 数据库容器。分支保护和安全报告渠道由仓库所有者在 GitHub 配置。

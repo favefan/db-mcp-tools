@@ -1,0 +1,113 @@
+name: Publish Windows release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: pwsh
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check tag, source versions and release notes
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release-version.mjs
+      - name: Record checked-out commit
+        id: commit
+        run: |
+          $sha = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read source commit' }
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+      - uses: ./.github/actions/setup
+      - name: Independent Server without DM
+        run: pnpm package:server --platform=windows --arch=amd64
+      - name: Pure client
+        run: pnpm package:client --server=none --target=x86_64-pc-windows-msvc
+      - name: Bundled client without DM
+        run: pnpm package:client --server=bundled --target=x86_64-pc-windows-msvc
+      - name: Verify Windows packages
+        run: node scripts/verify-windows-packages.mjs
+      - name: Prepare release attachments and checksums
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $version = $env:RELEASE_VERSION
+          $source = "artifacts/releases/$version"
+          $destination = 'artifacts/github-release'
+          New-Item -ItemType Directory -Path $destination -ErrorAction Stop | Out-Null
+          $names = @(
+            "dbmcp-server-$version-windows-amd64.zip",
+            "db-mcp-tools-client-none-$version-windows-amd64.setup.exe",
+            "db-mcp-tools-client-bundled-$version-windows-amd64.setup.exe",
+            "db-mcp-tools-client-none-$version-windows-amd64.manifest.json",
+            "db-mcp-tools-client-bundled-$version-windows-amd64.manifest.json"
+          )
+          foreach ($name in $names) {
+            Copy-Item -LiteralPath "$source/$name" -Destination $destination -ErrorAction Stop
+          }
+          Compress-Archive -LiteralPath "$source/source-maps" -DestinationPath "$destination/source-maps.zip" -ErrorAction Stop
+          $checksums = Get-ChildItem -LiteralPath $destination -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          [IO.File]::WriteAllText((Join-Path (Resolve-Path $destination) 'SHA256SUMS'), ($checksums -join "`n") + "`n")
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-release
+          path: artifacts/github-release/
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.build.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: windows-release
+          path: artifacts/github-release/
+      - name: Verify attachments and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
+        run: |
+          $directory = (Resolve-Path 'artifacts/github-release').Path
+          $entries = Get-Content -LiteralPath "$directory/SHA256SUMS"
+          if ($entries.Count -ne 6) { throw 'Expected six release attachments' }
+          foreach ($entry in $entries) {
+            if ($entry -notmatch '^([a-f0-9]{64})  ([a-zA-Z0-9._-]+)$') { throw 'Invalid checksum entry' }
+            $expected = $Matches[1]
+            $file = Join-Path $directory $Matches[2]
+            if ((Get-FileHash -LiteralPath $file -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant() -ne $expected) {
+              throw "Checksum mismatch: $file"
+            }
+          }
+          $commit = gh api "repos/$env:GITHUB_REPOSITORY/commits/$env:RELEASE_TAG" --jq .sha
+          if ($LASTEXITCODE -ne 0 -or $commit -ne $env:RELEASE_COMMIT) { throw 'Release tag changed during the build' }
+          $assets = @(Get-ChildItem -LiteralPath $directory -File | ForEach-Object FullName)
+          if ($assets.Count -ne 7) { throw 'Unexpected release attachment count' }
+          gh release create $env:RELEASE_TAG @assets --verify-tag --draft --title "DB MCP Tools $env:RELEASE_TAG" --notes-file RELEASE.md
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot create release draft and upload attachments' }
+          gh release edit $env:RELEASE_TAG --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot publish release draft' }

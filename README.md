@@ -6,7 +6,7 @@
 
 ## 平台与构建
 
-Server 支持 Windows、macOS 和 Linux；桌面使用 Tauri 的原生平台工具链。GitHub 工作流仅限 Windows x64，PR / main 基础检查与手动未签名打包分开，不自动发布。平台依赖和驱动限制见开发指南。
+Server 支持 Windows、macOS 和 Linux；桌面使用 Tauri 的原生平台工具链。GitHub 工作流仅限 Windows x64，提供 PR / main 基础检查、手动未签名打包，以及版本标签触发的 Release 发布。平台依赖和驱动限制见开发指南，发布步骤见 [RELEASE](RELEASE.md#维护者发布流程)。
 
 ## 开始开发
 

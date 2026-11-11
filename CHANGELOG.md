@@ -10,7 +10,7 @@
 
 - 前端预览、Server / CLI、完整桌面的开发指引，以及贡献和安全说明。
 - 独立桌面开发配置与 `dev:desktop` 命令，隔离开发档案、单实例身份和 debug 凭据。
-- 仅 Windows x64 的 GitHub 基础检查与手动未签名打包工作流。
+- 仅 Windows x64 的 GitHub 基础检查、手动未签名打包及版本标签触发的 Release 发布工作流。
 
 ### Changed
 

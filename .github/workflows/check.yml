@@ -22,6 +22,8 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Format
         run: pnpm format:check
+      - name: Release version guard
+        run: node --test scripts/release-version.test.mjs
       - name: Frontend types
         run: pnpm --dir client typecheck
       - name: Frontend lint
