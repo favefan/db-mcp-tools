@@ -1,4 +1,4 @@
-use crate::{diagnostics, preferences, profile_path, Desktop};
+use crate::{diagnostics, preferences, profiles, Desktop};
 use serde_json::json;
 use std::time::{Duration, Instant};
 use tauri::menu::CheckMenuItem;
@@ -173,7 +173,12 @@ pub fn set_lightweight_mode(app: tauri::AppHandle, enabled: bool) -> Result<(), 
 fn apply(app: &tauri::AppHandle, action: preferences::CloseBehavior) -> Result<(), String> {
     if action == preferences::CloseBehavior::Exit {
         diagnostics::event("desktop.exit_requested", json!({}));
-        app.exit(0);
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Err(error) = profiles::exit(app.clone(), false).await {
+                show_exit_error(&app, &error);
+            }
+        });
         return Ok(());
     }
     cancel_auto(app);
@@ -208,19 +213,36 @@ pub fn set_desktop_preferences(
     state: State<'_, Desktop>,
     close_behavior: preferences::CloseBehavior,
     lightweight_mode: bool,
+    theme: Option<String>,
+    notifications: Option<bool>,
+    session: profiles::Stamp,
 ) -> Result<preferences::Preferences, String> {
-    let mut current = state.preferences.lock().map_err(|e| e.to_string())?;
-    let next = preferences::Preferences {
-        close_to_tray: close_behavior == preferences::CloseBehavior::Tray,
-        close_behavior,
-        lightweight_mode,
-    };
-    preferences::save(
-        &profile_path(&app)?.with_file_name("preferences.json"),
-        &next,
-    )?;
-    *current = next.clone();
-    drop(current);
+    let _guard = state
+        .operations
+        .try_write()
+        .map_err(|_| "有操作正在进行，请稍候")?;
+    if !profiles::matches(&state, &session) {
+        return Err("会话已改变".into());
+    }
+    let mut next = state.preferences.lock().map_err(|e| e.to_string())?.clone();
+    next.close_to_tray = close_behavior == preferences::CloseBehavior::Tray;
+    next.close_behavior = close_behavior;
+    next.lightweight_mode = lightweight_mode;
+    if let Some(theme) = theme {
+        if !matches!(theme.as_str(), "system" | "light" | "dark") {
+            return Err("主题无效".into());
+        }
+        next.theme = theme;
+    }
+    if let Some(enabled) = notifications {
+        next.notifications = enabled;
+        state
+            .notifications
+            .lock()
+            .map_err(|e| e.to_string())?
+            .enabled = enabled;
+    }
+    profiles::persist_preferences(&app, next.clone())?;
     if !lightweight_mode {
         cancel_auto(&app);
     }
@@ -237,7 +259,25 @@ pub async fn confirm_close(
     state: State<'_, Desktop>,
     action: preferences::CloseBehavior,
     remember: bool,
+    session: Option<profiles::Stamp>,
 ) -> Result<(), String> {
+    let guard = state
+        .operations
+        .try_write()
+        .map_err(|_| "有操作正在进行，请稍候")?;
+    if let Some(stamp) = session {
+        if !profiles::matches(&state, &stamp) {
+            return Err("会话已改变，请重新关闭窗口".into());
+        }
+    } else if state
+        .session
+        .lock()
+        .map_err(|e| e.to_string())?
+        .profile
+        .is_some()
+    {
+        return Err("会话已改变，请重新关闭窗口".into());
+    }
     if action == preferences::CloseBehavior::Ask {
         return Err("请选择最小化运行或直接退出".into());
     }
@@ -247,7 +287,15 @@ pub async fn confirm_close(
             .lock()
             .map_err(|e| e.to_string())?
             .lightweight_mode;
-        set_desktop_preferences(app.clone(), state, action, lightweight)?;
+        let mut next = state.preferences.lock().map_err(|e| e.to_string())?.clone();
+        next.close_behavior = action;
+        next.close_to_tray = action == preferences::CloseBehavior::Tray;
+        next.lightweight_mode = lightweight;
+        profiles::persist_preferences(&app, next)?;
+    }
+    if action == preferences::CloseBehavior::Exit {
+        drop(guard);
+        return profiles::exit(app, false).await;
     }
     let (send, receive) = tokio::sync::oneshot::channel();
     let handle = app.clone();
@@ -289,10 +337,24 @@ pub fn tray_action(app: &tauri::AppHandle, id: &str) {
         }
         "quit" => {
             diagnostics::event("tray.quit", json!({}));
-            app.exit(0)
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(error) = profiles::exit(app.clone(), false).await {
+                    show_exit_error(&app, &error);
+                }
+            });
         }
         _ => {}
     }
+}
+
+pub fn show_exit_error(app: &tauri::AppHandle, message: &str) {
+    let _ = show_main(app);
+    let _ = app.emit("exit-failed", message);
+    diagnostics::event("desktop.exit_failed", json!({"message":message}));
+}
+pub fn profile_changed(app: &tauri::AppHandle) {
+    cancel_auto(app);
 }
 
 #[cfg(test)]

@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/gofrs/flock"
 )
 
 func Status(ctx context.Context, dir string) (map[string]any, error) {
@@ -105,6 +107,11 @@ func Start(ctx context.Context, dir string) error {
 	}
 }
 func Stop(ctx context.Context, dir string) error {
+	return StopInstance(ctx, dir, "")
+}
+
+// StopInstance refuses to stop a replacement process started by another owner.
+func StopInstance(ctx context.Context, dir, instance string) error {
 	c, err := LoadConfig(dir)
 	if err != nil {
 		return err
@@ -119,6 +126,9 @@ func Stop(ctx context.Context, dir string) error {
 	if status["mode"] != "background" {
 		return errors.New("use the original terminal or OS service manager to stop this Server")
 	}
+	if instance != "" && status["instance_id"] != instance {
+		return errors.New("Server process changed; refusing to stop a different instance")
+	}
 	b, err := os.ReadFile(filepath.Join(dir, "admin.token"))
 	if err != nil {
 		return err
@@ -129,6 +139,9 @@ func Stop(ctx context.Context, dir string) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+base64.RawURLEncoding.EncodeToString(b))
 	req.Header.Set("X-DBMCP-Server-ID", status["server_id"].(string))
+	if instance != "" {
+		req.Header.Set("X-DBMCP-Instance-ID", instance)
+	}
 	res, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
 	if err != nil {
 		return err
@@ -150,7 +163,16 @@ func Stop(ctx context.Context, dir string) error {
 		case <-ticker.C:
 			st, _ := Status(ctx, dir)
 			if st["running"] != true {
-				return nil
+				// HTTP shuts down before deferred SQLite cleanup releases its lock.
+				// Wait for that release so an immediate reconnect/restart is safe.
+				lock := flock.New(filepath.Join(dir, "server.lock"))
+				free, err := lock.TryLock()
+				if err != nil {
+					return err
+				}
+				if free {
+					return lock.Unlock()
+				}
 			}
 		}
 	}

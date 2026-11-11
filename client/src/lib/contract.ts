@@ -1862,6 +1862,7 @@ export interface paths {
               drivers: {
                 [key: string]: boolean;
               };
+              instance_id: string;
               mode: string;
               server_id: string;
               version: string;
@@ -3206,6 +3207,7 @@ export interface paths {
         query?: never;
         header: {
           "X-DBMCP-Server-ID": string;
+          "X-DBMCP-Instance-ID"?: string;
         };
         path?: never;
         cookie?: never;

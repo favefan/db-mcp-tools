@@ -9,6 +9,7 @@ import type {
   Registration,
   Audit,
   AuditDetail,
+  Profile,
 } from "./api";
 import { databaseResource } from "./resource-scope";
 
@@ -87,16 +88,51 @@ const registrations: Registration[] = [
 const templates: Template[] = [
   { id: "preview-template", name: "默认访问策略", revision: 1, policy: structuredClone(policy) },
 ];
-const profile = {
+let profile: Profile = {
+  id: "preview-local",
+  name: "default",
+  mode: "local",
+  follow_client: false,
+  preferences: {
+    theme: "system",
+    notifications: false,
+    close_to_tray: false,
+    close_behavior: "ask",
+    lightweight_mode: false,
+  },
   endpoint: "http://127.0.0.1:19876",
   data_dir: "D:/DBMCP/server",
   executable: "D:/DBMCP/dbmcp.exe",
   server_id: "preview-server",
 };
-const preferences = { close_to_tray: false, close_behavior: "ask", lightweight_mode: false };
+let preferences: Profile["preferences"] = profile.preferences;
+const profiles: Profile[] = [
+  profile,
+  {
+    ...structuredClone(profile),
+    id: "preview-existing",
+    name: "同一 Server · 深色环境",
+    mode: "existing",
+    data_dir: "",
+    executable: "",
+    endpoint: "http://127.0.0.1:19876",
+    server_id: "preview-server",
+    preferences: { ...profile.preferences, theme: "dark" },
+  },
+];
+let generation = 1;
+let connected = true;
+const session = () => ({
+  current: profiles.find((p) => p.id === profile.id) ?? null,
+  profiles,
+  generation,
+  connected,
+  busy: false,
+  preferences,
+});
 const health = {
   server_id: "preview-server",
-  version: "1.0.8",
+  version: "1.0.10",
   api_version: 1,
   mode: "background",
   data_dir: profile.data_dir,
@@ -374,6 +410,56 @@ export async function previewInvoke(
 ): Promise<unknown> {
   let result: unknown;
   switch (command) {
+    case "get_session":
+      result = session();
+      break;
+    case "save_profile": {
+      const p = structuredClone(args.profile as Profile);
+      if (!p.id) p.id = crypto.randomUUID();
+      const index = profiles.findIndex((x) => x.id === p.id);
+      if (index < 0) profiles.push(p);
+      else profiles[index] = p;
+      if (profile.id === p.id || !profiles.some((current) => current.id === profile.id)) {
+        profile = p;
+        preferences = p.preferences;
+        generation++;
+        connected = false;
+      }
+      result = session();
+      break;
+    }
+    case "delete_profile": {
+      if (args.id === profile.id && connected) throw new Error("请先断开此环境");
+      const i = profiles.findIndex((p) => p.id === args.id);
+      if (i >= 0) profiles.splice(i, 1);
+      if (args.id === profile.id) {
+        generation++;
+        preferences = {
+          theme: "system",
+          notifications: false,
+          close_to_tray: false,
+          close_behavior: "ask",
+          lightweight_mode: false,
+        };
+      }
+      result = session();
+      break;
+    }
+    case "switch_profile": {
+      const p = profiles.find((p) => p.id === args.id);
+      if (!p) throw new Error("环境不存在");
+      profile = p;
+      preferences = p.preferences;
+      generation++;
+      connected = Boolean(args.connectNow);
+      result = session();
+      break;
+    }
+    case "disconnect_session":
+      connected = false;
+      generation++;
+      result = session();
+      break;
     case "get_profile":
       result = profile;
       break;
@@ -381,7 +467,9 @@ export async function previewInvoke(
       result = preferences;
       break;
     case "set_desktop_preferences":
-      preferences.close_behavior = String(args.closeBehavior);
+      preferences.close_behavior = args.closeBehavior as Profile["preferences"]["close_behavior"];
+      if (args.theme) preferences.theme = args.theme as Profile["preferences"]["theme"];
+      if (typeof args.notifications === "boolean") preferences.notifications = args.notifications;
       preferences.close_to_tray = args.closeBehavior === "tray";
       preferences.lightweight_mode = Boolean(args.lightweightMode);
       result = preferences;
@@ -417,11 +505,14 @@ export async function previewInvoke(
       break;
     }
     case "connect_profile":
-      Object.assign(profile, args.profile);
-      result = health;
+      connected = true;
+      generation++;
+      result = { ...health, server_id: profile.server_id };
       break;
     case "admin_request":
+      if (!connected) throw new Error("当前环境未连接");
       result = await request(String(args.path), String(args.method), args.body);
+      if (args.path === "/admin/v1/health") result = { ...health, server_id: profile.server_id };
       break;
     default:
       throw new Error("网页用于界面评审，此操作需要桌面客户端。");

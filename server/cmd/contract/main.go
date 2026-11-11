@@ -59,7 +59,7 @@ func routes(schemas map[string]any) map[string]any {
 		response, request any
 		query             []string
 	}{
-		{"health", "get", object(map[string]any{"server_id": str, "data_dir": str, "version": str, "api_version": integer, "mode": str, "drivers": map[string]any{"type": "object", "additionalProperties": boolean}}), nil, nil},
+		{"health", "get", object(map[string]any{"server_id": str, "instance_id": str, "data_dir": str, "version": str, "api_version": integer, "mode": str, "drivers": map[string]any{"type": "object", "additionalProperties": boolean}}), nil, nil},
 		{"diagnostics", "get", map[string]any{"type": "object", "description": "Bounded diagnostic snapshot, operational logs and audit summaries; excludes credentials, SQL and row values."}, nil, nil},
 		{"default-policy", "get", ref("Policy"), nil, []string{"kind"}},
 		{"instances", "get", array(ref("Instance")), nil, nil},
@@ -142,6 +142,7 @@ func routes(schemas map[string]any) map[string]any {
 		}
 		if p.path == "runtime/stop" {
 			params = append(params, map[string]any{"name": "X-DBMCP-Server-ID", "in": "header", "required": true, "schema": str})
+			params = append(params, map[string]any{"name": "X-DBMCP-Instance-ID", "in": "header", "required": false, "schema": str})
 		}
 		if len(params) > 0 {
 			op["parameters"] = params

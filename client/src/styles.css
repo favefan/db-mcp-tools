@@ -1524,3 +1524,32 @@ details > .field {
     flex-wrap: wrap;
   }
 }
+
+.profile-mode {
+  border: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.profile-mode legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.profile-mode label {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  cursor: pointer;
+}
+.profile-mode label.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.profile-mode small {
+  grid-column: 2;
+  color: var(--muted);
+}

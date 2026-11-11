@@ -1,6 +1,6 @@
 [package]
 name = "dbmcp-client"
-version = "1.0.9"
+version = "1.0.10"
 description = "Desktop manager for DB MCP Tools"
 license = "MIT"
 authors = ["khun <khun.mail@qq.com>"]
@@ -29,8 +29,10 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 tempfile = "3"
 toml_edit = { version = "0.23", features = ["serde"] }
 sha2 = "0.10"
+semver = "1"
 base64 = "0.22"
-tokio = { version = "1", features = ["time", "sync"] }
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["time", "sync", "macros"] }
 tauri-plugin-log = "=2.8.0"
 log = "0.4"
 tauri-plugin-single-instance = "2"

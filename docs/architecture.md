@@ -29,6 +29,14 @@ flowchart LR
 
 MCP 和 Admin 使用不同监听器、认证中间件及路由。MCP 凭据不能调用管理端；管理员操作不注册为 MCP 工具。两者共享内部用例和状态库，不共享外部权限。
 
+## 桌面会话与 Profile
+
+Rust 持有唯一活动 Profile、会话代次、内存凭据、连接状态及本次启动进程的身份。Profile 列表、活动 ID 与每个环境的偏好原子保存到 profiles.json；管理员凭据按 Profile ID 存入系统 keyring。业务状态与 SQLite 仍仅属于 Go Server。
+
+切换和启停操作经互斥入口，普通管理请求持有读取许可；存在进行中操作时拒绝切换。每个 IPC 业务请求携带 Profile ID 与会话代次，Rust 检查后捕获同一目标及凭据；切换递增代次并取消 SSE，前端丢弃旧响应、清空 Query 缓存和通知。连接成功后才设置 connected，失败保持断开，不重放写入。
+
+本机元数据通过 Go runtime info 读取，不由 Rust 打开 SQLite。新目录用 init --allocate-ports 分配回环端口；现有部署地址不变。跟随实例记录每次启动生成的 instance_id，停止时用 X-DBMCP-Instance-ID 校验，防止误停相同数据目录中被外部替换的进程。系统服务和外部启动实例不自动接管。托盘和轻量模式不触发停机。
+
 ## 2. 目标目录与依赖方向
 
 ```text

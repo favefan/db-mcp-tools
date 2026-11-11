@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -23,7 +23,9 @@ import {
 import { Toaster, toast } from "sonner";
 import {
   api,
-  getProfile,
+  getSession,
+  setDesktopPreferences,
+  type SessionView,
   errorMessage,
   type Profile,
   type Health,
@@ -40,7 +42,7 @@ import { hasDesktop, isPreview, invoke } from "./lib/desktop";
 import { CloseDialog } from "./components/close-dialog";
 import { Button, Notice } from "./components/ui";
 import { serverCompatibility } from "./lib/server-version";
-import { upgradeBundledRuntime } from "./lib/server-upgrade";
+import { Profiles } from "./features/profiles";
 
 const navigation = [
   { name: "数据库实例", icon: Database },
@@ -63,19 +65,78 @@ export default function App() {
   const [approvalTarget, setApprovalTarget] = useState<string>();
   const main = useRef<HTMLElement>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") ?? "system");
-  const [notifications, setNotifications] = useState(
-    () => localStorage.getItem("notifications") === "true",
-  );
+  const [theme, setTheme] = useState("system");
+  const [notifications, setNotifications] = useState(false);
+  const [session, setSession] = useState<SessionView>();
+  const [managingProfiles, setManagingProfiles] = useState(false);
+  const generation = useRef(-1);
+  const wasConnected = useRef(false);
+  const importedLegacy = useRef(false);
   const seen = useRef(new Set<string>());
   const bootstrapped = useRef(false);
   const [upgrading, setUpgrading] = useState("");
   const [upgradeError, setUpgradeError] = useState("");
   const client = useQueryClient();
+  const applySession = useCallback(
+    (next: SessionView) => {
+      if (next.generation < generation.current) return;
+      if (next.generation !== generation.current || next.connected !== wasConnected.current) {
+        setUpgradeError("");
+        client.clear();
+        seen.current.clear();
+        setApprovalTarget(undefined);
+        if (!next.busy) setPage(next.connected ? 0 : 4);
+      }
+      wasConnected.current = next.connected;
+      generation.current = next.generation;
+      setSession(next);
+      setProfile(next.current);
+      setTheme(next.preferences.theme);
+      setNotifications(next.preferences.notifications);
+      setUpgrading(next.busy ? "当前环境" : "");
+      client.setQueryData(["desktop-preferences"], next.preferences);
+    },
+    [client],
+  );
+  const refreshSession = useCallback(() => getSession().then(applySession), [applySession]);
+  const saveAppearance = async (nextTheme: string, nextNotifications: boolean) => {
+    if (!session?.current) return;
+    try {
+      await setDesktopPreferences(
+        session.preferences.close_behavior,
+        session.preferences.lightweight_mode,
+        nextTheme,
+        nextNotifications,
+      );
+      await refreshSession();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+  useEffect(() => {
+    if (!session?.current?.import_legacy_ui || session.busy || importedLegacy.current) return;
+    importedLegacy.current = true;
+    const previousTheme = localStorage.getItem("theme");
+    const nextTheme = ["system", "light", "dark"].includes(previousTheme ?? "")
+      ? previousTheme!
+      : session.preferences.theme;
+    const nextNotifications = localStorage.getItem("notifications") === "true";
+    void setDesktopPreferences(
+      session.preferences.close_behavior,
+      session.preferences.lightweight_mode,
+      nextTheme,
+      nextNotifications,
+    )
+      .then(refreshSession)
+      .catch((e) => {
+        importedLegacy.current = false;
+        toast.error(errorMessage(e));
+      });
+  }, [session, refreshSession]);
   const health = useQuery({
-    queryKey: ["health", profile?.server_id],
+    queryKey: ["health", profile?.id, session?.generation],
     queryFn: () => api<Health>("health"),
-    enabled: !!profile,
+    enabled: !!profile && !!session?.connected && !session.busy,
     refetchInterval: 15000,
     retry: false,
   });
@@ -125,35 +186,24 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (hasDesktop() && !bootstrapped.current) {
+    if (!hasDesktop()) return;
+    const refresh = () => void refreshSession().catch((e) => toast.error(errorMessage(e)));
+    if (!bootstrapped.current) {
       bootstrapped.current = true;
-      void getProfile()
-        .then(async (p) => {
-          setProfile(p);
-          if (!p) setPage(4);
-          else {
-            try {
-              const next = await upgradeBundledRuntime(p, setUpgrading);
-              setProfile(next);
-              await client.invalidateQueries();
-            } catch (error) {
-              setUpgradeError(errorMessage(error));
-              setSettingsSection("server");
-              setPage(4);
-            } finally {
-              setUpgrading("");
-            }
-          }
-        })
-        .catch((error) => {
-          toast.error(`读取连接档案失败：${errorMessage(error)}`);
-          setSettingsSection("server");
-          setPage(4);
-        });
+      refresh();
     }
-  }, [client]);
+    if (!isTauri()) return;
+    const listener = listen("session-changed", refresh);
+    return () => {
+      void listener.then((f) => f());
+    };
+  }, [refreshSession]);
   useEffect(() => {
-    localStorage.setItem("theme", theme);
+    if (!session?.busy) return;
+    const timer = setInterval(() => void refreshSession(), 1000);
+    return () => clearInterval(timer);
+  }, [session?.busy, refreshSession]);
+  useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
     const update = () =>
       (document.documentElement.dataset.theme =
@@ -164,20 +214,20 @@ export default function App() {
   }, [theme]);
   useEffect(() => {
     if (!isTauri()) return;
-    const unlisten = listen(
-      "server-changed",
-      () =>
-        void client.invalidateQueries({
-          predicate: (query) =>
-            !["integrations", "local-defaults", "autostart"].includes(String(query.queryKey[0])),
-        }),
-    );
+    const unlisten = listen("server-changed", (event) => {
+      const stamp = event.payload as { profile_id?: string; generation?: number };
+      if (stamp.profile_id !== profile?.id || stamp.generation !== session?.generation) return;
+      void client.invalidateQueries({
+        predicate: (query) =>
+          !["integrations", "local-defaults", "autostart"].includes(String(query.queryKey[0])),
+      });
+    });
     return () => {
       void unlisten.then((f) => f());
     };
-  }, [client]);
+  }, [client, profile?.id, session?.generation]);
   const compatibility = serverCompatibility(health.data);
-  const connected = !!health.data && !health.error;
+  const connected = !!session?.connected && !!health.data && !health.error && !session.busy;
   const ready = connected && !compatibility && !upgrading;
   const openSettings = (section: SettingsSection) => {
     if (page !== 4) setPreviousPage(page);
@@ -261,15 +311,29 @@ export default function App() {
             )}
             <button
               className="server-profile"
-              onClick={() => openSettings("server")}
-              title={connected ? "Server 已连接" : "Server 未连接"}
+              onClick={() => setManagingProfiles(true)}
+              title="当前会话 · 切换环境"
             >
               <Circle size={9} fill="currentColor" className={connected ? "online" : "offline"} />
               {!collapsed && (
                 <>
                   <div>
-                    <strong>{profile?.data_dir ? "本机 Server" : "Server 连接"}</strong>
-                    <small>{connected ? "已连接" : "未连接"}</small>
+                    <strong>{profile ? `当前环境 · ${profile.name}` : "选择当前环境"}</strong>
+                    <small>
+                      {!profile
+                        ? "尚未选择连接"
+                        : profile.mode === "local"
+                          ? "本机托管"
+                          : "已有 Server"}{" "}
+                      ·{" "}
+                      {session?.busy
+                        ? "切换中"
+                        : session?.connected && health.isPending
+                          ? "连接中"
+                          : connected
+                            ? "已连接"
+                            : "未连接"}
+                    </small>
                   </div>
                   <ChevronRight size={14} />
                 </>
@@ -279,8 +343,8 @@ export default function App() {
         </aside>
         <main ref={main}>
           {upgrading && page !== 4 && (
-            <Page title="升级本机 Server" icon={HardDrive}>
-              <Notice>正在备份并升级本机 Server 至 {upgrading}，完成后自动重新连接…</Notice>
+            <Page title="准备当前环境" icon={HardDrive}>
+              <Notice>正在处理当前环境的连接与本机运行状态…</Notice>
             </Page>
           )}
           {page !== 4 && !ready && !upgrading && (
@@ -293,9 +357,12 @@ export default function App() {
                 }
               >
                 {compatibility ||
-                  (profile
-                    ? "Server 连接已断开，请检查运行状态。"
-                    : "先连接 Server，开始管理数据库访问。")}
+                  session?.error ||
+                  (session?.connected && health.isPending
+                    ? "正在读取当前 Server 状态…"
+                    : profile
+                      ? "Server 连接已断开，请检查运行状态。"
+                      : "先连接 Server，开始管理数据库访问。")}
               </Notice>
             </Page>
           )}
@@ -317,31 +384,38 @@ export default function App() {
           {page === 3 && ready && <Logs />}
           {page === 4 && (
             <Settings
-              key={profile?.server_id ?? "new"}
+              key={(profile?.id ?? "new") + ":" + (session?.generation ?? 0)}
               section={settingsSection}
               title={settingsNavigation.find((item) => item.id === settingsSection)!.name}
               profile={profile}
               health={connected ? health.data : undefined}
               upgrading={!!upgrading}
               upgradeError={upgradeError}
+              connectionError={session?.error}
               onUpgradeErrorChange={setUpgradeError}
-              onConnect={(p) => {
-                setUpgradeError("");
-                client.clear();
-                setProfile(p);
-              }}
+              onConnect={() => void refreshSession()}
+              onManageProfiles={() => setManagingProfiles(true)}
               theme={theme}
-              setTheme={setTheme}
+              setTheme={(value) => void saveAppearance(value, notifications)}
               notifications={notifications}
               setNotifications={(v) => {
-                localStorage.setItem("notifications", String(v));
-                setNotifications(v);
+                void saveAppearance(theme, v);
               }}
             />
           )}
         </main>
       </div>
-      <CloseDialog />
+      {managingProfiles && session && (
+        <Profiles
+          session={session}
+          onChange={applySession}
+          onClose={() => setManagingProfiles(false)}
+        />
+      )}
+      <CloseDialog
+        followClient={profile?.follow_client ?? false}
+        generation={session?.generation}
+      />
       <Toaster
         richColors
         position="bottom-right"

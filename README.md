@@ -22,7 +22,7 @@ Linux / macOS 将 Server 输出名改为 bin/dbmcp。首次开发不要使用已
 
 ## 文档与贡献
 
-- [v1.0.9 发布说明](RELEASE.md) · [变更历史](CHANGELOG.md)
+- [v1.0.10 发布说明](RELEASE.md) · [变更历史](CHANGELOG.md)
 - [安装与使用](docs/user-guide.md)
 - [开发环境、三条启动路径与检查](docs/development.md)
 - [贡献流程](CONTRIBUTING.md) · [安全问题](SECURITY.md)
@@ -37,6 +37,6 @@ pnpm package:client --server=none --target=x86_64-pc-windows-msvc
 pnpm package:client --server=bundled --target=x86_64-pc-windows-msvc
 ```
 
-产物与 SHA256SUMS 位于 artifacts/releases/<当前版本>/，当前为 1.0.9。桌面必须在目标 OS 原生构建，Server 可交叉编译。--dm=native 仅用于明确标识的本地 DM 构建。详细前置条件和测试入口见开发指南。
+产物与 SHA256SUMS 位于 artifacts/releases/<当前版本>/，当前为 1.0.10。桌面必须在目标 OS 原生构建，Server 可交叉编译。--dm=native 仅用于明确标识的本地 DM 构建。详细前置条件和测试入口见开发指南。
 
 源码采用 [MIT](LICENSE)，第三方许可不被覆盖。

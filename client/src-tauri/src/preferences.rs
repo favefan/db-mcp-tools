@@ -10,12 +10,26 @@ pub enum CloseBehavior {
     Exit,
 }
 
-#[derive(Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Preferences {
+    pub theme: String,
+    pub notifications: bool,
     pub close_to_tray: bool,
     pub close_behavior: CloseBehavior,
     pub lightweight_mode: bool,
+}
+
+impl Default for Preferences {
+    fn default() -> Self {
+        Self {
+            theme: "system".into(),
+            notifications: false,
+            close_to_tray: false,
+            close_behavior: CloseBehavior::Ask,
+            lightweight_mode: false,
+        }
+    }
 }
 
 pub fn load(path: &Path, legacy_close_to_tray: bool) -> Result<Preferences, String> {
@@ -73,6 +87,7 @@ mod tests {
                 close_to_tray: true,
                 close_behavior: CloseBehavior::Tray,
                 lightweight_mode: true,
+                ..Preferences::default()
             },
         )
         .unwrap();

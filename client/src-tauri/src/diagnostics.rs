@@ -278,7 +278,7 @@ pub async fn snapshot(app: &tauri::AppHandle) -> Result<Value, String> {
         }
         let mut stage = "credential.load";
         let collected: Result<Value, String> = async {
-            let token = entry()?
+            let token = entry(&profile.id)?
                 .get_password()
                 .map_err(|_| "administrator credential unavailable")?;
             stage = "server.request";
@@ -325,6 +325,11 @@ pub fn save(path: &Path, value: &Value) -> Result<(), String> {
 }
 
 pub async fn export(app: tauri::AppHandle) -> Result<Value, String> {
+    let state = app.state::<Desktop>();
+    let _guard = state
+        .operations
+        .try_read()
+        .map_err(|_| "正在切换环境，请稍候")?;
     let dialog_app = app.clone();
     let path = tauri::async_runtime::spawn_blocking(move || {
         dialog_app
@@ -341,7 +346,7 @@ pub async fn export(app: tauri::AppHandle) -> Result<Value, String> {
         return Ok(Value::Null);
     };
     let path = file.into_path().map_err(|e| e.to_string())?;
-    export_to(app, path).await
+    export_to(app.clone(), path).await
 }
 
 async fn export_to(app: tauri::AppHandle, path: PathBuf) -> Result<Value, String> {
@@ -449,9 +454,14 @@ pub async fn diagnostics_export(
     app: tauri::AppHandle,
     destination: Option<PathBuf>,
 ) -> Result<Value, String> {
+    let state = app.state::<Desktop>();
+    let _guard = state
+        .operations
+        .try_read()
+        .map_err(|_| "正在切换环境，请稍候")?;
     match destination {
-        Some(path) => export_to(app, path).await,
-        None => export(app).await,
+        Some(path) => export_to(app.clone(), path).await,
+        None => export(app.clone()).await,
     }
 }
 

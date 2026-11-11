@@ -1,4 +1,4 @@
-import { invoke } from "./desktop";
+import { invoke, acceptSession } from "./desktop";
 import type { components } from "./contract";
 import { serverCompatibility } from "./server-version";
 
@@ -17,12 +17,20 @@ export type Template = components["schemas"]["Template"];
 export type Effective = components["schemas"]["Effective"];
 export type Configuration = components["schemas"]["Configuration"];
 export interface Profile {
+  id: string;
+  name: string;
+  mode: "local" | "existing";
+  follow_client: boolean;
+  preferences: DesktopPreferences;
+  import_legacy_ui?: boolean;
   endpoint: string;
   data_dir: string;
   executable: string;
   server_id: string;
 }
 export interface DesktopPreferences {
+  theme: "system" | "light" | "dark";
+  notifications: boolean;
   close_to_tray: boolean;
   close_behavior: "ask" | "tray" | "exit";
   lightweight_mode: boolean;
@@ -31,7 +39,15 @@ export const getPreferences = () => invoke<DesktopPreferences>("get_preferences"
 export const setDesktopPreferences = (
   closeBehavior: DesktopPreferences["close_behavior"],
   lightweightMode: boolean,
-) => invoke<DesktopPreferences>("set_desktop_preferences", { closeBehavior, lightweightMode });
+  theme?: string,
+  notifications?: boolean,
+) =>
+  invoke<DesktopPreferences>("set_desktop_preferences", {
+    closeBehavior,
+    lightweightMode,
+    theme,
+    notifications,
+  });
 export interface Health {
   server_id: string;
   data_dir: string;
@@ -77,6 +93,8 @@ export async function api<T>(path: string, method = "GET", body?: unknown): Prom
 export const getProfile = () => invoke<Profile | null>("get_profile");
 export const connect = async (profile: Profile, token: string) => {
   const health = await invoke<Health>("connect_profile", { profile, token: token || null });
+  const active = await getSession();
+  if (active.current?.id !== profile.id || !active.connected) throw new Error("连接期间环境已切换");
   serverHealth = health;
   return health;
 };
@@ -99,4 +117,43 @@ export const localRestore = (profile: Profile, backup: string) =>
   });
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+export interface SessionView {
+  current: Profile | null;
+  profiles: Profile[];
+  generation: number;
+  connected: boolean;
+  owned_server?: boolean;
+  busy: boolean;
+  error?: string;
+  preferences: DesktopPreferences;
+}
+let healthGeneration = -1;
+function rememberSession(view: SessionView) {
+  acceptSession(view);
+  if (view.generation > healthGeneration) {
+    serverHealth = undefined;
+    healthGeneration = view.generation;
+  }
+  return view;
+}
+export async function getSession() {
+  return rememberSession(await invoke<SessionView>("get_session"));
+}
+export async function saveProfile(profile: Profile, token: string) {
+  const view = await invoke<SessionView>("save_profile", { profile, token: token || null });
+  return rememberSession(view);
+}
+export async function switchProfile(id: string, connectNow: boolean) {
+  const view = await invoke<SessionView>("switch_profile", { id, connectNow });
+  return rememberSession(view);
+}
+export async function disconnectSession() {
+  const view = await invoke<SessionView>("disconnect_session");
+  return rememberSession(view);
+}
+export async function deleteProfile(id: string) {
+  const view = await invoke<SessionView>("delete_profile", { id });
+  return rememberSession(view);
 }

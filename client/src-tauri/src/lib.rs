@@ -1,7 +1,7 @@
-use base64::Engine;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{fs, path::PathBuf, process::Command, sync::Mutex, time::Duration};
+#[cfg(test)]
+use std::fs;
+use std::{path::PathBuf, process::Command, sync::Mutex, time::Duration};
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -12,47 +12,45 @@ mod diagnostics;
 mod integrations;
 mod notifications;
 mod preferences;
+mod profiles;
+use profiles::Profile;
 mod windows;
 
-#[derive(Clone, Default, Serialize, Deserialize)]
-struct Profile {
-    endpoint: String,
-    #[serde(default)]
-    data_dir: String,
-    #[serde(default)]
-    executable: String,
-    #[serde(default)]
-    server_id: String,
-    #[serde(default, skip_serializing)]
-    close_to_tray: bool,
-}
 struct Desktop {
-    profile: Mutex<Option<Profile>>,
+    session: Mutex<profiles::Runtime>,
+    catalog: Mutex<profiles::Store>,
+    operations: tokio::sync::RwLock<()>,
+    events: tokio::sync::watch::Sender<()>,
+    exiting: std::sync::atomic::AtomicBool,
     preferences: Mutex<preferences::Preferences>,
     notifications: Mutex<notifications::NotificationState>,
     windows: Mutex<windows::WindowState>,
     http: reqwest::Client,
 }
-fn entry() -> Result<keyring::Entry, String> {
+fn entry(id: &str) -> Result<keyring::Entry, String> {
     let service = if cfg!(debug_assertions) {
         "local.dbmcp.tools.dev"
     } else {
         "local.dbmcp.tools"
     };
-    keyring::Entry::new(service, "admin").map_err(|e| e.to_string())
-}
-fn profile_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.join("profile.json"))
+    keyring::Entry::new(
+        service,
+        &if id.is_empty() {
+            "admin".to_string()
+        } else {
+            format!("profile:{id}")
+        },
+    )
+    .map_err(|e| e.to_string())
 }
 fn read_profile(state: &Desktop) -> Result<Profile, String> {
     state
-        .profile
+        .session
         .lock()
         .map_err(|e| e.to_string())?
+        .profile
         .clone()
-        .ok_or("请先连接 Server".into())
+        .ok_or("请先选择环境".into())
 }
 fn validate_endpoint(endpoint: &str) -> Result<(), String> {
     let url = reqwest::Url::parse(endpoint).map_err(|_| "Admin 地址无效")?;
@@ -162,7 +160,12 @@ async fn request(
 }
 #[tauri::command]
 fn get_profile(state: State<'_, Desktop>) -> Result<Option<Profile>, String> {
-    Ok(state.profile.lock().map_err(|e| e.to_string())?.clone())
+    Ok(state
+        .session
+        .lock()
+        .map_err(|e| e.to_string())?
+        .profile
+        .clone())
 }
 #[tauri::command]
 fn get_preferences(state: State<'_, Desktop>) -> Result<preferences::Preferences, String> {
@@ -172,47 +175,14 @@ fn get_preferences(state: State<'_, Desktop>) -> Result<preferences::Preferences
 async fn connect_profile(
     app: tauri::AppHandle,
     state: State<'_, Desktop>,
-    mut profile: Profile,
+    profile: Profile,
     token: Option<String>,
+    session: profiles::Stamp,
 ) -> Result<Value, String> {
-    validate_endpoint(&profile.endpoint)?;
-    let credential = if let Some(t) = token.filter(|s| !s.is_empty()) {
-        t
-    } else if !profile.data_dir.is_empty() {
-        let b = fs::read(PathBuf::from(&profile.data_dir).join("admin.token"))
-            .map_err(|_| "无法读取本机管理员凭据")?;
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b)
-    } else {
-        entry()?.get_password().map_err(|_| "请输入管理员凭据")?
-    };
-    let health = request(
-        &state,
-        &profile,
-        &credential,
-        "GET",
-        "/admin/v1/health",
-        None,
-    )
-    .await?;
-    if health["api_version"] != 1 {
-        return Err("Server API 版本不兼容，请升级客户端或 Server".into());
+    if profile.id != session.profile_id {
+        return Err("连接目标不是当前环境".into());
     }
-    let id = health["server_id"].as_str().ok_or("Server 缺少身份信息")?;
-    if !profile.server_id.is_empty() && profile.server_id != id {
-        return Err("Server 身份已变化，请重新建立连接档案".into());
-    }
-    profile.server_id = id.to_string();
-    entry()?
-        .set_password(&credential)
-        .map_err(|e| e.to_string())?;
-    let path = profile_path(&app)?;
-    let parent = path.parent().ok_or("配置目录无效")?;
-    let mut tmp = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
-    serde_json::to_writer(&mut tmp, &profile).map_err(|e| e.to_string())?;
-    tmp.as_file().sync_all().map_err(|e| e.to_string())?;
-    tmp.persist(&path).map_err(|e| e.to_string())?;
-    *state.profile.lock().map_err(|e| e.to_string())? = Some(profile);
-    Ok(health)
+    profiles::connect_current(&app, &state, session, token).await
 }
 #[tauri::command]
 async fn admin_request(
@@ -220,19 +190,101 @@ async fn admin_request(
     method: String,
     path: String,
     body: Option<Value>,
+    session: profiles::Stamp,
 ) -> Result<Value, String> {
-    let profile = read_profile(&state)?;
-    let token = entry()?
-        .get_password()
-        .map_err(|_| "管理员凭据不可用，请重新连接")?;
+    let _guard = profiles::operation(&state, &session)?;
+    let (profile, token) = {
+        let s = state.session.lock().map_err(|e| e.to_string())?;
+        if !s.connected {
+            return Err("当前环境尚未连接".into());
+        }
+        (
+            s.profile.clone().ok_or("未选择环境")?,
+            s.token.clone().ok_or("管理员凭据不可用")?,
+        )
+    };
     request(&state, &profile, &token, &method, &path, body).await
 }
 #[tauri::command]
 async fn local_command(
+    app: tauri::AppHandle,
+    state: State<'_, Desktop>,
+    session: profiles::Stamp,
     executable: String,
     data_dir: String,
     action: String,
 ) -> Result<Value, String> {
+    let _guard = state
+        .operations
+        .try_write()
+        .map_err(|_| "有操作正在进行，请稍候")?;
+    if !profiles::matches(&state, &session) {
+        return Err("会话已改变".into());
+    }
+    let selected = read_profile(&state)?;
+    let alternate_upgrade = if action == "upgrade" && selected.executable != executable {
+        let info = local_defaults(
+            app.clone(),
+            Some(selected.executable.clone()),
+            Some(selected.data_dir.clone()),
+        )
+        .await?;
+        info["bundled_executable"].as_str() == Some(executable.as_str())
+    } else {
+        false
+    };
+    if selected.mode != profiles::ConnectionMode::Local
+        || (selected.executable != executable && !alternate_upgrade)
+        || selected.data_dir != data_dir
+    {
+        return Err("本机操作目标必须与当前环境一致；请先保存环境配置".into());
+    }
+    let before = if matches!(
+        action.as_str(),
+        "start"
+            | "stop"
+            | "restart"
+            | "upgrade"
+            | "service-start"
+            | "service-stop"
+            | "service-restart"
+            | "service-install"
+            | "service-migrate"
+    ) {
+        Some(profiles::call(&selected, &["run", "status"]).await?)
+    } else {
+        None
+    };
+    if let Some(status) = &before {
+        profiles::check_identity(&selected, status)?;
+    }
+    if selected.follow_client {
+        if matches!(action.as_str(), "start" | "restart" | "upgrade")
+            && profiles::call(&selected, &["service", "status"]).await?["installed"] != false
+        {
+            return Err("系统服务或服务状态未知，不能使用随客户端启停".into());
+        }
+        if matches!(
+            action.as_str(),
+            "service-install" | "service-migrate" | "service-start" | "service-restart"
+        ) {
+            return Err("请先关闭随客户端启停，再使用系统服务".into());
+        }
+        if matches!(action.as_str(), "start" | "restart" | "upgrade")
+            && before.as_ref().is_some_and(|s| s["running"] == true)
+        {
+            let owned = state
+                .session
+                .lock()
+                .map_err(|e| e.to_string())?
+                .owned
+                .clone();
+            if !owned.is_some_and(|p| p.matches(&selected, before.as_ref().unwrap())) {
+                return Err("该 Server 由外部启动，请先手动停止或关闭随客户端启停".into());
+            }
+        }
+    }
+    let saved_action = action.clone();
     let trace = diagnostics::id();
     diagnostics::event(
         "local.start",
@@ -242,7 +294,16 @@ async fn local_command(
         return Err("请选择已安装的 dbmcp 程序和数据目录".into());
     }
     let mut args = match action.as_str() {
-        "init" => vec!["init"],
+        "init" => {
+            if std::path::Path::new(&data_dir)
+                .join("deployment.toml")
+                .exists()
+            {
+                vec!["init"]
+            } else {
+                vec!["init", "--allocate-ports"]
+            }
+        }
         "start" => vec!["runtime", "upgrade", "--start"],
         "stop" => vec!["run", "stop"],
         "restart" => vec!["run", "restart"],
@@ -308,6 +369,16 @@ async fn local_command(
     .await
     .map_err(|e| e.to_string())?;
     diagnostics::result("local.complete", &result);
+    if let Ok(value) = &result {
+        profiles::local_result(
+            &app,
+            &state,
+            &selected,
+            &saved_action,
+            before.as_ref(),
+            value,
+        )?;
+    }
     result
 }
 
@@ -407,14 +478,31 @@ fn hide(_cmd: &mut Command) {}
 
 #[tauri::command]
 async fn local_restore(
+    app: tauri::AppHandle,
+    state: State<'_, Desktop>,
+    session: profiles::Stamp,
     executable: String,
     data_dir: String,
     backup: String,
 ) -> Result<Value, String> {
+    let _guard = state
+        .operations
+        .try_write()
+        .map_err(|_| "有操作正在进行，请稍候")?;
+    if !profiles::matches(&state, &session) {
+        return Err("会话已改变".into());
+    }
+    let p = read_profile(&state)?;
+    if p.mode != profiles::ConnectionMode::Local
+        || p.executable != executable
+        || p.data_dir != data_dir
+    {
+        return Err("恢复目标必须为当前本机环境".into());
+    }
     if executable.is_empty() || data_dir.is_empty() || backup.is_empty() {
         return Err("请选择本机程序、数据目录和备份目录".into());
     }
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let mut cmd = Command::new(executable);
         cmd.arg("--data-dir")
             .arg(data_dir)
@@ -428,43 +516,46 @@ async fn local_restore(
         serde_json::from_slice(&out.stdout).map_err(|_| "恢复命令响应无效".into())
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())??;
+    profiles::local_result(&app, &state, &p, "restore", None, &result)?;
+    Ok(result)
 }
 
 async fn events(app: tauri::AppHandle) {
+    let mut changes = app.state::<Desktop>().events.subscribe();
     loop {
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::select! {_=tokio::time::sleep(Duration::from_secs(2))=>{},_=changes.changed()=>{}}
+        let snapshot = {
+            let state = app.state::<Desktop>();
+            let s = state.session.lock().expect("session lock");
+            if !s.connected || s.busy {
+                None
+            } else {
+                s.profile
+                    .clone()
+                    .zip(s.token.clone())
+                    .map(|(p, t)| (p, t, s.generation))
+            }
+        };
+        let Some((profile, token, generation)) = snapshot else {
+            continue;
+        };
         let state = app.state::<Desktop>();
-        let Ok(profile) = read_profile(&state) else {
-            continue;
+        let stamp = profiles::Stamp {
+            profile_id: profile.id.clone(),
+            generation,
         };
-        if validate_endpoint(&profile.endpoint).is_err() {
-            continue;
-        }
-        let Ok(token) = entry().and_then(|e| e.get_password().map_err(|e| e.to_string())) else {
-            continue;
-        };
-        let Ok(mut response) = state
-            .http
-            .get(format!(
-                "{}/admin/v1/events",
-                profile.endpoint.trim_end_matches('/')
-            ))
-            .bearer_auth(&token)
-            .send()
-            .await
-        else {
-            continue;
-        };
+        let response = tokio::select! {_=changes.changed()=>continue,r=state.http.get(format!("{}/admin/v1/events",profile.endpoint.trim_end_matches('/'))).bearer_auth(&token).header("X-DBMCP-Server-ID",&profile.server_id).send()=>r};
+        let Ok(mut response) = response else { continue };
         if !response.status().is_success() {
             continue;
         }
-        notifications::changed(&app, &profile, &token).await;
+        notifications::changed(&app, &profile, &token, &stamp).await;
         let mut buffer = String::new();
-        while let Ok(Some(chunk)) = response.chunk().await {
-            if !read_profile(&state)
-                .is_ok_and(|p| p.server_id == profile.server_id && p.endpoint == profile.endpoint)
-            {
+        loop {
+            let chunk = tokio::select! {_=changes.changed()=>break,c=response.chunk()=>c};
+            let Ok(Some(chunk)) = chunk else { break };
+            if !profiles::matches(&state, &stamp) {
                 break;
             }
             buffer.push_str(&String::from_utf8_lossy(&chunk));
@@ -474,9 +565,11 @@ async fn events(app: tauri::AppHandle) {
             while let Some(index) = buffer.find("\n\n") {
                 let event = buffer[..index].to_string();
                 buffer.drain(..index + 2);
-                if event.contains("event: changed") {
-                    notifications::changed(&app, &profile, &token).await;
-                    let _ = app.emit("server-changed", ());
+                if event.contains("event: changed") && profiles::matches(&state, &stamp) {
+                    notifications::changed(&app, &profile, &token, &stamp).await;
+                    if profiles::matches(&state, &stamp) {
+                        let _ = app.emit("server-changed", &stamp);
+                    }
                 }
             }
         }
@@ -497,7 +590,11 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .manage(Desktop {
-            profile: Mutex::new(None),
+            session: Mutex::new(profiles::Runtime::default()),
+            catalog: Mutex::new(profiles::Store::default()),
+            operations: tokio::sync::RwLock::new(()),
+            events: tokio::sync::watch::channel(()).0,
+            exiting: std::sync::atomic::AtomicBool::new(false),
             preferences: Mutex::new(preferences::Preferences::default()),
             notifications: Mutex::new(notifications::NotificationState::default()),
             windows: Mutex::new(windows::WindowState::default()),
@@ -511,27 +608,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
             diagnostics::init(handle).map_err(std::io::Error::other)?;
-            if let Ok(path) = profile_path(handle) {
-                if let Ok(b) = fs::read(&path) {
-                    if let Ok(profile) = serde_json::from_slice::<Profile>(&b) {
-                        *app.state::<Desktop>().profile.lock().expect("profile lock") =
-                            Some(profile);
-                    }
-                }
-                let legacy = app
-                    .state::<Desktop>()
-                    .profile
-                    .lock()
-                    .expect("profile lock")
-                    .as_ref()
-                    .is_some_and(|p| p.close_to_tray);
-                *app.state::<Desktop>()
-                    .preferences
-                    .lock()
-                    .expect("preferences lock") =
-                    preferences::load(&path.with_file_name("preferences.json"), legacy)
-                        .map_err(std::io::Error::other)?;
-            }
+            if let Err(error)=profiles::initialize(handle){let state=app.state::<Desktop>();state.session.lock().expect("session lock").error=Some(error);}
             let [(show_id, show_label), (light_id, light_label), (export_id, export_label), (quit_id, quit_label)] = windows::TRAY_ITEMS;
             let show = MenuItem::with_id(app, show_id, show_label, true, None::<&str>)?;
             let lightweight = CheckMenuItem::with_id(app, light_id, light_label, true, false, None::<&str>)?;
@@ -558,6 +635,7 @@ pub fn run() {
             }
             tray.build(app)?;
             tauri::async_runtime::spawn(events(app.handle().clone()));
+            tauri::async_runtime::spawn(profiles::boot(app.handle().clone()));
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -572,6 +650,12 @@ pub fn run() {
             diagnostics::frontend_error,
             notifications::sync_notifications,
             get_profile,
+            profiles::get_session,
+            profiles::save_profile,
+            profiles::delete_profile,
+            profiles::switch_profile,
+            profiles::disconnect_session,
+            profiles::exit_session,
             get_preferences,
             windows::set_desktop_preferences,
             windows::set_lightweight_mode,
@@ -590,12 +674,12 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("build DB MCP Tools desktop")
-        .run(|_, event| {
-            if let tauri::RunEvent::ExitRequested {
-                code: None, api, ..
-            } = event
-            {
-                api.prevent_exit()
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested {api,code,..}=event {
+                if code.is_none(){api.prevent_exit();return;}
+                if !app.state::<Desktop>().exiting.load(std::sync::atomic::Ordering::SeqCst){
+                    api.prevent_exit();let app=app.clone();tauri::async_runtime::spawn(async move{if let Err(error)=profiles::exit(app.clone(),false).await{windows::show_exit_error(&app,&error);}});
+                }
             }
         });
 }

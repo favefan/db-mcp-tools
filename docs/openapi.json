@@ -2594,7 +2594,7 @@
   },
   "info": {
     "title": "DB MCP Tools Admin API",
-    "version": "1.0.9"
+    "version": "1.0.10"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4320,6 +4320,9 @@
                       },
                       "type": "object"
                     },
+                    "instance_id": {
+                      "type": "string"
+                    },
                     "mode": {
                       "type": "string"
                     },
@@ -4334,6 +4337,7 @@
                     "api_version",
                     "data_dir",
                     "drivers",
+                    "instance_id",
                     "mode",
                     "server_id",
                     "version"
@@ -5579,6 +5583,14 @@
             "in": "header",
             "name": "X-DBMCP-Server-ID",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-DBMCP-Instance-ID",
+            "required": false,
             "schema": {
               "type": "string"
             }

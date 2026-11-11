@@ -349,11 +349,13 @@ fn replace(path: &Path, expected: &str, bytes: &[u8], id: &str) -> Result<Option
     Ok(backup)
 }
 fn record_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let path = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| e.to_string())?
-        .join("integrations");
+    let p = read_profile(&app.state::<Desktop>())?;
+    let root = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let path = if p.id == "legacy" {
+        root.join("integrations")
+    } else {
+        root.join("profiles").join(p.id).join("integrations")
+    };
     fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     private(&path, true)?;
     Ok(path)
@@ -429,11 +431,22 @@ fn app_target(app: &tauri::AppHandle, t: &Target) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
-pub fn integration_list(app: tauri::AppHandle) -> Result<Vec<Record>, String> {
+pub fn integration_list(
+    app: tauri::AppHandle,
+    state: State<'_, Desktop>,
+    session: crate::profiles::Stamp,
+) -> Result<Vec<Record>, String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
     records(&record_dir(&app)?)
 }
 #[tauri::command]
-pub fn integration_preview(app: tauri::AppHandle, target: Target) -> Result<Preview, String> {
+pub fn integration_preview(
+    app: tauri::AppHandle,
+    state: State<'_, Desktop>,
+    session: crate::profiles::Stamp,
+    target: Target,
+) -> Result<Preview, String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
     preview(app_target(&app, &target)?, &record_dir(&app)?, &target)
 }
 
@@ -466,7 +479,10 @@ pub async fn integration_export(
     app: tauri::AppHandle,
     url: String,
     token: String,
+    state: State<'_, Desktop>,
+    session: crate::profiles::Stamp,
 ) -> Result<Value, String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
     validate_mcp_url(&url)?;
     tauri::async_runtime::spawn_blocking(move || {
         let Some(file) = app
@@ -559,9 +575,16 @@ pub async fn integration_install(
     state: State<'_, Desktop>,
     target: Target,
     expected: String,
+    session: crate::profiles::Stamp,
 ) -> Result<Value, String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
+    if !state.session.lock().map_err(|e| e.to_string())?.connected {
+        return Err("当前环境未连接".into());
+    }
     let p = read_profile(&state)?;
-    let token = entry()?.get_password().map_err(|_| "管理员凭据不可用")?;
+    let token = entry(&p.id)?
+        .get_password()
+        .map_err(|_| "管理员凭据不可用")?;
     let dir = record_dir(&app)?;
     let plan = preview(app_target(&app, &target)?, &dir, &target)?;
     install_at(
@@ -690,7 +713,13 @@ async fn install_at(
 }
 
 #[tauri::command]
-pub fn integration_remove_preview(app: tauri::AppHandle, id: String) -> Result<Value, String> {
+pub fn integration_remove_preview(
+    app: tauri::AppHandle,
+    state: State<'_, Desktop>,
+    session: crate::profiles::Stamp,
+    id: String,
+) -> Result<Value, String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
     let r = records(&record_dir(&app)?)?
         .into_iter()
         .find(|r| r.id == id)
@@ -710,17 +739,24 @@ pub async fn integration_remove(
     state: State<'_, Desktop>,
     id: String,
     expected: String,
+    session: crate::profiles::Stamp,
 ) -> Result<Value, String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
     let dir = record_dir(&app)?;
     let r = records(&dir)?
         .into_iter()
         .find(|r| r.id == id)
         .ok_or("安装记录不存在")?;
+    if !state.session.lock().map_err(|e| e.to_string())?.connected {
+        return Err("当前环境未连接".into());
+    }
     let p = read_profile(&state)?;
     if p.server_id != r.server_id {
         return Err("请先连接这次安装使用的 Server，以便撤销凭据".into());
     }
-    let token = entry()?.get_password().map_err(|_| "管理员凭据不可用")?;
+    let token = entry(&p.id)?
+        .get_password()
+        .map_err(|_| "管理员凭据不可用")?;
     remove_at(&state, &p, &token, &dir, r, &expected).await
 }
 async fn remove_at(
@@ -842,7 +878,14 @@ mod tests {
         };
         let state = Desktop {
             windows: Mutex::new(crate::windows::WindowState::default()),
-            profile: Mutex::new(Some(p.clone())),
+            session: Mutex::new(crate::profiles::Runtime {
+                profile: Some(p.clone()),
+                ..Default::default()
+            }),
+            catalog: Mutex::new(crate::profiles::Store::default()),
+            operations: tokio::sync::RwLock::new(()),
+            events: tokio::sync::watch::channel(()).0,
+            exiting: std::sync::atomic::AtomicBool::new(false),
             preferences: Mutex::new(crate::preferences::Preferences::default()),
             notifications: Mutex::new(crate::notifications::NotificationState::default()),
             http: reqwest::Client::builder()

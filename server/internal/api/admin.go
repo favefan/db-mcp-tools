@@ -74,13 +74,14 @@ func route(m *http.ServeMux, pattern string, f endpoint) {
 func Admin(a *app.App, stop func(), mode string) http.Handler {
 	m := http.NewServeMux()
 	s := a.Store
+	instanceID := model.ID()
 	registrationRoutes(m, a)
 	route(m, "GET /admin/v1/diagnostics", func(w http.ResponseWriter, r *http.Request) error {
 		write(w, diagnosticSnapshot(a, mode))
 		return nil
 	})
 	route(m, "GET /admin/v1/health", func(w http.ResponseWriter, r *http.Request) error {
-		write(w, map[string]any{"server_id": s.ServerID, "data_dir": s.Dir, "version": model.Version, "api_version": model.APIVersion, "mode": mode, "drivers": map[string]bool{"postgres": true, "mysql": true, "sqlserver": true, "dm": database.DMAvailable}})
+		write(w, map[string]any{"server_id": s.ServerID, "instance_id": instanceID, "data_dir": s.Dir, "version": model.Version, "api_version": model.APIVersion, "mode": mode, "drivers": map[string]bool{"postgres": true, "mysql": true, "sqlserver": true, "dm": database.DMAvailable}})
 		return nil
 	})
 	route(m, "GET /admin/v1/default-policy", func(w http.ResponseWriter, r *http.Request) error {
@@ -523,6 +524,9 @@ func Admin(a *app.App, stop func(), mode string) http.Handler {
 			return errors.New("this process is managed by its terminal or service manager")
 		}
 		if r.Header.Get("X-DBMCP-Server-ID") != s.ServerID {
+			return storage.ErrDenied
+		}
+		if expected := r.Header.Get("X-DBMCP-Instance-ID"); expected != "" && expected != instanceID {
 			return storage.ErrDenied
 		}
 		write(w, map[string]bool{"stopping": true})

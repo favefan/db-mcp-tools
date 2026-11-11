@@ -6,7 +6,7 @@ use tauri_plugin_notification::NotificationExt;
 
 #[derive(Default)]
 pub struct NotificationState {
-    enabled: bool,
+    pub enabled: bool,
     seen: HashSet<String>,
 }
 impl NotificationState {
@@ -26,7 +26,9 @@ pub fn sync_notifications(
     state: State<'_, Desktop>,
     enabled: bool,
     pending_ids: Vec<String>,
+    session: crate::profiles::Stamp,
 ) -> Result<(), String> {
+    let _guard = crate::profiles::operation(&state, &session)?;
     if pending_ids.len() > 1000
         || pending_ids
             .iter()
@@ -40,7 +42,12 @@ pub fn sync_notifications(
     Ok(())
 }
 
-pub async fn changed(app: &tauri::AppHandle, profile: &Profile, token: &str) {
+pub async fn changed(
+    app: &tauri::AppHandle,
+    profile: &Profile,
+    token: &str,
+    stamp: &crate::profiles::Stamp,
+) {
     if app.get_webview_window("main").is_some() {
         return;
     }
@@ -70,6 +77,9 @@ pub async fn changed(app: &tauri::AppHandle, profile: &Profile, token: &str) {
         }
     }
     if app.get_webview_window("main").is_some() {
+        return;
+    }
+    if !crate::profiles::matches(&state, stamp) {
         return;
     }
     let added = state

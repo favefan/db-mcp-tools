@@ -270,3 +270,62 @@ func AdminRequest(ctx context.Context, dir, endpoint, token, method, path string
 	}
 	return out, nil
 }
+
+// Info only reads deployment configuration and probes its authenticated listener.
+func Info(ctx context.Context, dir string) (map[string]any, error) {
+	c, err := LoadConfig(dir)
+	if err != nil {
+		return nil, err
+	}
+	absolute, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, err
+	}
+	status, err := Status(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"admin": c.Admin, "mcp": c.MCP, "data_dir": absolute, "status": status}, nil
+}
+
+// Port allocation only applies to a new deployment; existing addresses are preserved.
+func InitializePorts(dir string, allocate bool) (map[string]any, error) {
+	if !allocate {
+		return Initialize(dir)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "deployment.toml")); err == nil {
+		return Initialize(dir)
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+	first, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+	defer first.Close()
+	second, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+	defer second.Close()
+	out, err := Initialize(dir)
+	if err != nil {
+		return nil, err
+	}
+	c, err := LoadConfig(dir)
+	if err != nil {
+		return nil, err
+	}
+	c.Admin = first.Addr().String()
+	c.MCP = second.Addr().String()
+	bytes, err := toml.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+	if err = os.WriteFile(filepath.Join(dir, "deployment.toml"), bytes, 0600); err != nil {
+		return nil, err
+	}
+	out["admin"] = c.Admin
+	out["mcp"] = c.MCP
+	return out, nil
+}

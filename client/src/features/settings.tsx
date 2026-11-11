@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,7 +31,6 @@ import {
   DataList,
   DataListItem,
   DataTable,
-  ViewTabs,
   Notice,
   Stack,
 } from "../components/ui";
@@ -60,12 +59,14 @@ export function Settings({
   profile,
   health,
   onConnect,
+  onManageProfiles,
   theme,
   setTheme,
   notifications,
   setNotifications,
   upgrading = false,
   upgradeError,
+  connectionError,
   onUpgradeErrorChange,
 }: {
   section: SettingsSection;
@@ -73,12 +74,14 @@ export function Settings({
   profile: Profile | null;
   health?: Health;
   onConnect: (p: Profile) => void;
+  onManageProfiles: () => void;
   theme: string;
   setTheme: (s: string) => void;
   notifications: boolean;
   setNotifications: (v: boolean) => void;
   upgrading?: boolean;
   upgradeError: string;
+  connectionError?: string;
   onUpgradeErrorChange: (message: string) => void;
 }) {
   const form = useForm<FormValues>({
@@ -91,9 +94,7 @@ export function Settings({
     },
   });
   const [busy, setBusy] = useState(false);
-  const [serverMode, setServerMode] = useState<"local" | "existing">(() =>
-    profile?.data_dir ? "local" : "existing",
-  );
+  const serverMode = profile?.mode ?? "existing";
   const [output, setOutput] = useState<{ section: SettingsSection; value: unknown }>();
   const [template, setTemplate] = useState<Template>();
   const [incoming, setIncoming] = useState<{
@@ -143,7 +144,13 @@ export function Settings({
   const localStatus = useQuery({
     queryKey: ["local-status", executable, dataDir],
     queryFn: () =>
-      getLocalStatus({ ...form.getValues(), executable, data_dir: dataDir, server_id: "" }),
+      getLocalStatus({
+        ...profile!,
+        ...form.getValues(),
+        executable,
+        data_dir: dataDir,
+        server_id: "",
+      }),
     enabled:
       hasDesktop() &&
       section === "server" &&
@@ -157,12 +164,6 @@ export function Settings({
   const localControlDisabled =
     busy || upgrading || !hasLocalTarget || localStatus.isFetching || localStatus.isError;
   const running = localStatus.data?.running;
-  useEffect(() => {
-    if (defaults.data?.executable && !form.getValues("executable"))
-      form.setValue("executable", defaults.data.executable);
-    if (defaults.data?.build?.default_data_dir && !form.getValues("data_dir"))
-      form.setValue("data_dir", defaults.data.build.default_data_dir);
-  }, [defaults.data, form]);
   const templates = useQuery({
     queryKey: ["templates"],
     queryFn: () => api<Template[]>("templates"),
@@ -174,6 +175,7 @@ export function Settings({
     enabled: !!health && !compatibility,
   });
   const current = (): Profile => ({
+    ...profile!,
     ...form.getValues(),
     server_id: form.getValues("endpoint") === profile?.endpoint ? profile.server_id : "",
   });
@@ -280,43 +282,43 @@ export function Settings({
     >
       <div className="settings-content">
         {compatibility && <Notice tone="error">{compatibility}</Notice>}
-        <ViewTabs
-          label="Server 管理方式"
-          hidden={section !== "server"}
-          value={serverMode}
-          onValueChange={setServerMode}
-          items={[
-            { value: "local", label: "本机托管" },
-            { value: "existing", label: "连接已有 Server" },
-          ]}
-        />
+        {connectionError && (
+          <Notice title="当前环境未连接" tone="error">
+            {connectionError}
+          </Notice>
+        )}
+        {section === "server" && (
+          <section className="panel settings-panel">
+            <div className="section-title">
+              <h2>当前环境：{profile?.name ?? "尚未选择环境"}</h2>
+              <Button onClick={onManageProfiles}>管理 / 切换环境</Button>
+            </div>
+            <p>
+              {profile
+                ? profile.mode === "local"
+                  ? "连接方式：本机托管"
+                  : "连接方式：已有 Server"
+                : "创建环境并选择一种连接方式。"}{" "}
+              · 同一时间只连接一个环境。
+            </p>
+            {profile && <p className="muted">连接目标：{profile.endpoint}</p>}
+          </section>
+        )}
         <section
           className="panel settings-panel"
-          hidden={section !== "server" || serverMode !== "existing"}
+          hidden={section !== "server" || serverMode !== "existing" || !profile}
         >
           <h2>连接地址与凭据</h2>
           <p className="muted">
             连接已经运行的本机或远程 Server。客户端不负责部署或启停；远程管理通过 SSH 隧道连接。
           </p>
-          <form onSubmit={(e) => void submit(e)} className="form-stack">
-            <div className="settings-fields">
-              <Field label="Admin 地址" hint="远程部署通过 SSH 隧道连接。">
-                <input {...form.register("endpoint")} />
-              </Field>
-              <Field
-                label="管理员凭据"
-                hint="填写目标 Server 的管理员凭据；留空时使用已保存的凭据。"
-              >
-                <input type="password" autoComplete="off" {...form.register("token")} />
-              </Field>
-            </div>
-            {form.formState.errors.endpoint && <p className="error">请输入完整的 Server 地址</p>}
-            <div className="settings-actions">
-              <Button variant="primary" disabled={busy} type="submit">
-                {busy ? "处理中…" : "连接并保存档案"}
-              </Button>
-            </div>
-          </form>
+          <p className="muted">{profile?.endpoint}</p>
+          <Button variant="primary" disabled={busy || !profile} onClick={() => void submit()}>
+            连接当前环境
+          </Button>
+          <Button disabled={busy} onClick={onManageProfiles}>
+            编辑环境配置
+          </Button>
           {health && (
             <p className="muted">
               Server ID：{health.server_id} · 运行方式：{health.mode}
@@ -328,7 +330,7 @@ export function Settings({
         </div>
         <section
           className="panel settings-panel local-settings"
-          hidden={section !== "server" || serverMode !== "local"}
+          hidden={section !== "server" || serverMode !== "local" || !profile}
         >
           <h2>程序与数据</h2>
           {(upgradePending || upgradeError || bundledUpgrade) && (
@@ -375,61 +377,20 @@ export function Settings({
           <p className="muted">
             由客户端在这台电脑上部署和启停 Server，启动后自动连接，无需另填管理地址。
           </p>
-          <div className="settings-fields">
+          <Stack>
             <Field label="dbmcp 程序路径">
-              <div className="path-input">
-                <input
-                  {...form.register("executable")}
-                  placeholder="选择已安装的 dbmcp.exe / dbmcp"
-                />
-                <Button
-                  type="button"
-                  disabled={busy}
-                  onClick={async () => {
-                    try {
-                      const path = await open({ multiple: false, title: "选择 dbmcp 程序" });
-                      if (typeof path !== "string") return;
-                      const info = await localDefaults(path);
-                      setSelectedBuild(info);
-                      form.setValue("executable", path);
-                      if (!form.getValues("data_dir") && info.build)
-                        form.setValue("data_dir", info.build.default_data_dir);
-                    } catch (e) {
-                      toast.error(errorMessage(e));
-                    }
-                  }}
-                >
-                  浏览…
-                </Button>
-              </div>
+              <input value={profile?.executable ?? ""} readOnly />
             </Field>
             <Field label="数据目录">
-              <div className="path-input">
-                <input
-                  {...form.register("data_dir")}
-                  placeholder="保存状态、密钥与备份的稳定目录"
-                />
-                <Button
-                  type="button"
-                  disabled={busy}
-                  onClick={async () => {
-                    try {
-                      const path = await open({
-                        directory: true,
-                        multiple: false,
-                        title: "选择数据目录",
-                      });
-                      if (typeof path === "string") form.setValue("data_dir", path);
-                    } catch (e) {
-                      toast.error(errorMessage(e));
-                    }
-                  }}
-                >
-                  浏览…
-                </Button>
-              </div>
+              <input value={profile?.data_dir ?? ""} readOnly />
             </Field>
-          </div>
+            <p className="muted">
+              {profile?.follow_client
+                ? "Server 随客户端启停：切走或真正退出时停止本次客户端启动的后台实例。"
+                : "Server 独立运行：连接切换和客户端退出不停止它。"}
+            </p>
+            <Button onClick={onManageProfiles}>编辑当前环境</Button>
+          </Stack>
           <div className="actions settings-actions">
             <Button
               disabled={busy || upgrading || !hasLocalTarget}
@@ -483,8 +444,7 @@ export function Settings({
             </p>
           )}
           <p className="muted">
-            启动时部署到稳定目录并自动连接。退出客户端后 Server 继续运行；已安装服务时启停由 OS
-            服务管理器控制。
+            启动时部署到稳定目录并自动连接。启用随客户端启停时，真正退出会停止本次启动实例；独立进程和系统服务继续运行。
           </p>
           {localInfo?.build && (
             <p className="muted">
@@ -514,7 +474,7 @@ export function Settings({
             </Button>
             <Button
               variant="text"
-              disabled={busy || !localInfo?.build || !hasLocalTarget}
+              disabled={busy || !localInfo?.build || !hasLocalTarget || !!profile?.follow_client}
               onClick={() => setServicePlan(true)}
             >
               {localInfo?.platform === "windows" ? "转为 Windows 系统服务…" : "安装当前用户服务…"}
@@ -534,7 +494,11 @@ export function Settings({
           <h2>外观与行为</h2>
           <div className="settings-fields">
             <Field label="主题">
-              <select value={theme} onChange={(e) => setTheme(e.target.value)}>
+              <select
+                value={theme}
+                disabled={!profile || busy}
+                onChange={(e) => setTheme(e.target.value)}
+              >
                 <option value="system">跟随系统</option>
                 <option value="light">浅色</option>
                 <option value="dark">深色</option>
@@ -543,12 +507,14 @@ export function Settings({
             <label className="setting-toggle">
               <span>
                 <strong>默认关闭行为</strong>
-                <small>可每次询问、最小化到托盘或直接退出；Server 独立运行。</small>
+                <small>
+                  此环境可选择每次询问、最小化到托盘或直接退出；跟随 Server 在真正退出时停止。
+                </small>
               </span>
               <select
                 aria-label="默认关闭行为"
                 value={preferences.data?.close_behavior ?? "ask"}
-                disabled={busy || !preferences.data}
+                disabled={busy || !profile || !preferences.data}
                 onChange={async (e) => {
                   setBusy(true);
                   try {
@@ -583,7 +549,7 @@ export function Settings({
                 type="checkbox"
                 role="switch"
                 checked={preferences.data?.lightweight_mode ?? false}
-                disabled={busy || !preferences.data}
+                disabled={busy || !profile || !preferences.data}
                 onChange={async (e) => {
                   setBusy(true);
                   try {
@@ -636,6 +602,7 @@ export function Settings({
                 type="checkbox"
                 role="switch"
                 checked={notifications}
+                disabled={!profile || busy}
                 onChange={async (e) => {
                   if (!e.target.checked) {
                     setNotifications(false);

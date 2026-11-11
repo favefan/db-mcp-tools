@@ -183,6 +183,13 @@ func command() *cobra.Command {
 	_ = diagnosticCommand.MarkFlagRequired("out")
 	root.AddCommand(diagnosticCommand)
 	runtimeCmd := &cobra.Command{Use: "runtime", Short: "Deploy Server in a stable versioned runtime directory"}
+	runtimeCmd.AddCommand(&cobra.Command{Use: "info", Short: "Read local deployment addresses without opening state", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+		v, err := run.Info(cmd.Context(), dir)
+		if err != nil {
+			return err
+		}
+		return output(v)
+	}})
 	var launch, asService bool
 	var destination string
 	runtimeCmd.PersistentFlags().BoolVar(&launch, "start", false, "Start after deployment (upgrade also resumes a previously running Server)")
@@ -223,13 +230,16 @@ func command() *cobra.Command {
 		return output(v)
 	}})
 	root.AddCommand(runtimeCmd)
-	root.AddCommand(&cobra.Command{Use: "init", Short: "Initialize a private data directory and administrator credential", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
-		v, err := run.Initialize(dir)
+	var allocatePorts bool
+	initCmd := &cobra.Command{Use: "init", Short: "Initialize a private data directory and administrator credential", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+		v, err := run.InitializePorts(dir, allocatePorts)
 		if err != nil {
 			return err
 		}
 		return output(v)
-	}})
+	}}
+	initCmd.Flags().BoolVar(&allocatePorts, "allocate-ports", false, "Choose available loopback ports for a new deployment")
+	root.AddCommand(initCmd)
 	var mode string
 	serve := &cobra.Command{Use: "serve", Short: "Run the independent Server in this terminal", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		if mode != "foreground" && mode != "background" {
@@ -239,6 +249,7 @@ func command() *cobra.Command {
 	}}
 	serve.Flags().StringVar(&mode, "mode", "foreground", "Runtime ownership: foreground or background")
 	root.AddCommand(serve)
+	var expectedInstance string
 	runCmd := &cobra.Command{Use: "run [start|stop|restart|status]", Short: "Manage an independent background process", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		switch args[0] {
 		case "start":
@@ -246,7 +257,7 @@ func command() *cobra.Command {
 				return err
 			}
 		case "stop":
-			if err := run.Stop(cmd.Context(), dir); err != nil {
+			if err := run.StopInstance(cmd.Context(), dir, expectedInstance); err != nil {
 				return err
 			}
 		case "restart":
@@ -266,6 +277,7 @@ func command() *cobra.Command {
 		}
 		return output(v)
 	}}
+	runCmd.Flags().StringVar(&expectedInstance, "instance-id", "", "Stop only the specified running process instance")
 	root.AddCommand(runCmd)
 	svc := &cobra.Command{Use: "service [install|uninstall|start|stop|restart|status|run]", Short: "Manage the native OS service (data survives uninstall)", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		if !root.PersistentFlags().Changed("data-dir") && (runtime.GOOS == "windows" || system) {
