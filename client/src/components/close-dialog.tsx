@@ -7,13 +7,7 @@ import { invoke } from "../lib/desktop";
 import { errorMessage } from "../lib/api";
 import { Modal, Button } from "./ui";
 
-export function CloseDialog({
-  followClient = false,
-  generation,
-}: {
-  followClient?: boolean;
-  generation?: number;
-}) {
+export function CloseDialog({ generation }: { generation?: number }) {
   const [open, setOpen] = useState(false);
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -59,11 +53,6 @@ export function CloseDialog({
         if (!busy) setOpen(false);
       }}
     >
-      <p>
-        {followClient
-          ? "最小化到托盘继续运行；真正退出时停止本次由客户端启动的跟随 Server。"
-          : "最小化后保留托盘；直接退出不停止独立 Server。"}
-      </p>
       {exitError && (
         <>
           <p className="error">{exitError}</p>
@@ -80,7 +69,7 @@ export function CloseDialog({
               }
             }}
           >
-            保留 Server 并退出
+            保留 MCP Server 并退出
           </Button>
         </>
       )}
@@ -88,7 +77,6 @@ export function CloseDialog({
         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
         不再提醒，记住本次选择
       </label>
-      <p className="muted">之后可在设置 → 通用中修改关闭行为。</p>
       <div className="form-actions">
         <Button disabled={busy} onClick={() => setOpen(false)}>
           取消

@@ -1,6 +1,6 @@
 # 架构、状态与接口设计
 
-本文件描述 Server / MCP / CLI 与桌面管理的架构；驱动与语法限制见 [依赖说明](dependencies.md)。
+本文件描述 MCP Server / MCP / CLI 与桌面管理的架构；驱动与语法限制见 [依赖说明](dependencies.md)。
 
 ## 1. 总体结构
 
@@ -25,17 +25,17 @@ flowchart LR
     Drivers --> DM[DM8]
 ```
 
-一个 Go 可执行文件包含 `serve`、管理 CLI、`bridge`、`service` 和后台运行命令；Bridge 只是另一个进程入口，不是第二个数据库执行器。Server 关闭时 Bridge 返回可理解的连接错误，不自行偷偷启动另一个带独立状态的 Server。
+一个 Go 可执行文件包含 `serve`、管理 CLI、`bridge`、`service` 和后台运行命令；Bridge 只是另一个进程入口，不是第二个数据库执行器。MCP Server 关闭时 Bridge 返回可理解的连接错误，不自行偷偷启动另一个带独立状态的 MCP Server。
 
 MCP 和 Admin 使用不同监听器、认证中间件及路由。MCP 凭据不能调用管理端；管理员操作不注册为 MCP 工具。两者共享内部用例和状态库，不共享外部权限。
 
 ## 桌面会话与 Profile
 
-Rust 持有唯一活动 Profile、会话代次、内存凭据、连接状态及本次启动进程的身份。Profile 列表、活动 ID 与每个环境的偏好原子保存到 profiles.json；管理员凭据按 Profile ID 存入系统 keyring。业务状态与 SQLite 仍仅属于 Go Server。
+Rust 持有唯一活动 Profile、会话代次、内存凭据、连接状态及本次启动进程的身份。Profile 列表、活动 ID 与每个配置的偏好原子保存到 profiles.json；管理员凭据按 Profile ID 存入系统 keyring。业务状态与 SQLite 仍仅属于 Go MCP Server。
 
 切换和启停操作经互斥入口，普通管理请求持有读取许可；存在进行中操作时拒绝切换。每个 IPC 业务请求携带 Profile ID 与会话代次，Rust 检查后捕获同一目标及凭据；切换递增代次并取消 SSE，前端丢弃旧响应、清空 Query 缓存和通知。连接成功后才设置 connected，失败保持断开，不重放写入。
 
-本机元数据通过 Go runtime info 读取，不由 Rust 打开 SQLite。新目录用 init --allocate-ports 分配回环端口；现有部署地址不变。跟随实例记录每次启动生成的 instance_id，停止时用 X-DBMCP-Instance-ID 校验，防止误停相同数据目录中被外部替换的进程。系统服务和外部启动实例不自动接管。托盘和轻量模式不触发停机。
+本机元数据通过 Go runtime info 读取，Rust 不打开 SQLite。新目录用 init --allocate-ports 分配回环端口，runtime prepare 仅初始化稳定运行入口且不创建备份。已部署的本机配置用 run start 或 OS 服务命令启动，不在进入配置时执行升级。当前本机配置接管身份匹配的后台实例，保存每次进程的 instance_id，切走或退出时验证身份后停止；HTTP 配置不控制进程。托盘与轻量模式不触发停机。
 
 ## 2. 目标目录与依赖方向
 
@@ -50,8 +50,8 @@ db-mcp-tools/
 │   └── src-tauri/
 │       ├── src/                 窗口、Admin 通信、凭据、文件与进程适配
 │       ├── capabilities/        最小桌面能力配置
-│       ├── binaries/            构建时暂存 Server，不提交二进制
-│       └── tauri*.conf.json     基础和携带 Server 的覆盖配置
+│       ├── binaries/            构建时暂存 MCP Server，不提交二进制
+│       └── tauri*.conf.json     基础和携带 MCP Server 的覆盖配置
 ├── server/
 │   ├── cmd/dbmcp/               命令入口
 │   ├── internal/
@@ -80,7 +80,7 @@ db-mcp-tools/
 
 Admin API 采用 OpenAPI 3.1 文档；前端以 `openapi-typescript` 生成类型，生成的客户端类型不含业务规则。Rust 代理只转发经过白名单限定的管理请求并统一处理认证，不复制一套管理数据模型。
 
-## 3. Server 启动与存储
+## 3. MCP Server 启动与存储
 
 - `server/go.mod` 初始可用本地 module 名 `dbmcp.local/server`；不依赖尚未指定的 Git 远端。后续确定远端时集中调整模块路径。
 - 启动配置使用小型 TOML 文件：监听地址、数据目录、日志、代理信任、TLS 路径等部署设置。实例和策略保存在 SQLite，避免两套配置相互覆盖。
@@ -89,7 +89,7 @@ Admin API 采用 OpenAPI 3.1 文档；前端以 `openapi-typescript` 生成类�
 - goose 通过嵌入的迁移脚本升级；迁移前一致性备份。不做数据库版本降级，旧程序发现新 schema 给出明确错误。
 - 实例连接按实例和目标数据库维护 `sql.DB` 池，执行并发门限仍由同一实例共享；修改连接后关闭该实例的所有数据库池，不为每个数据请求重新建连接。
 
-集中运行诊断使用 Go slog / lumberjack 和 Tauri 官方日志插件，按进程锁定文件并轮转；审计仍在 Server SQLite。管理员诊断接口只汇总日志、安全状态及审计摘要，不输出秘密或查询载荷。桌面通过同一管理连接合并远端快照，失败必须显式报告；停机 CLI 只读日志，不打开业务库。关联 ID 贯穿 Rust、Go HTTP 和执行管线。详见 [日志与诊断](diagnostics.md)。
+集中运行诊断使用 Go slog / lumberjack 和 Tauri 官方日志插件，按进程锁定文件并轮转；审计仍在 MCP Server SQLite。管理员诊断接口只汇总日志、安全状态及审计摘要，不输出秘密或查询载荷。桌面通过同一管理连接合并远端快照，失败必须显式报告；停机 CLI 只读日志，不打开业务库。关联 ID 贯穿 Rust、Go HTTP 和执行管线。详见 [日志与诊断](diagnostics.md)。
 
 ## 4. 数据模型
 
@@ -117,7 +117,7 @@ Mask 规则属于实例策略或绑定策略，包含规则 ID、字段目标或
 
 实体 Token 使用加密安全随机数生成，服务端存 SHA-256 摘要，明文只在签发时交给配置安装流程。高熵随机 Token 不需要密码哈希框架。Entity ID 与 Credential ID 分离，轮换不丢历史。
 
-管理员凭据单独生成和撤销。桌面端用 OS keyring 保存，Rust `reqwest` 带上认证后转发 Admin 请求，WebView 不持久保存管理员 Token。CLI 使用权限受限的凭据文件或显式传入的环境变量。
+管理员凭据单独生成和撤销。桌面端用 OS keyring 保存，Rust `reqwest` 带上认证后转发 Admin 请求，WebView 不持久保存管理员 Token。CLI 使用权限受限的凭据文件或显式传入的配置变量。
 
 接入配置安装只由 Admin 签发独立随机接入凭据，首次 MCP 请求原子创建停用实体与凭据记录并进入待授权状态；并发重试共用同一实体。未经准备的未知 Token 仍拒绝，不提供匿名注册或发现。实体识别绑定凭据摘要，不依赖 Agent 自报名称或 IP。管理员在独立的实体登记审批中确认绑定策略，所有绑定和实体启用在一个事务提交；批准后原凭据继续有效。认证和执行前重检都会检查登记状态，不能通过其他实体编辑或新签发凭据绕过待授权状态。拒绝或移除会撤销接入凭据并停用关联实体。
 
@@ -204,7 +204,7 @@ Bridge 可在客户端调用超时允许的范围内等待状态；等待结束�
 
 用 SQLite 条件更新认领 `approved -> executing`，并发 resume 只能有一个执行者。进程若在目标库提交后、写回本地状态前退出，跨两库无法保证“恰好一次”：此类写入重启后标为 `result_unknown`，不自动重试，提示管理员检查目标库。重复请求返回已有结果或状态，不盲目再次执行。
 
-Server 重启后恢复 pending；过期置 expired；中断的只读请求可由客户端重新发起。禁用实体或撤销原凭据使相关待执行请求失效。UI 事件流断开不影响已持久化的审批。
+MCP Server 重启后恢复 pending；过期置 expired；中断的只读请求可由客户端重新发起。禁用实体或撤销原凭据使相关待执行请求失效。UI 事件流断开不影响已持久化的审批。
 
 ## 7. 管理 API、MCP 与 CLI
 
@@ -232,12 +232,12 @@ MCP 工具按产品能力集中注册：
 | `db_explain`                                      | PostgreSQL 非执行计划                              |
 | `approval_status` / `resume_request`              | 查看与恢复原请求，不接受另一份 SQL 替换            |
 
-只保留一套 CLI 命令：`dbmcp serve`、`run start|stop|restart|status`、`service install|uninstall|start|stop|restart|status`、`instances`、`entities`、`approvals`、`backup`、`restore`、`bridge`。管理业务命令调用 Admin API；进程和服务命令操作本机；离线恢复单独要求 Server 已停止。
+只保留一套 CLI 命令：`dbmcp serve`、`run start|stop|restart|status`、`service install|uninstall|start|stop|restart|status`、`instances`、`entities`、`approvals`、`backup`、`restore`、`bridge`。管理业务命令调用 Admin API；进程和服务命令操作本机；离线恢复单独要求 MCP Server 已停止。
 
 ## 8. 备份与网络部署
 
 配置导出是带版本的 JSON，默认不包含密码、Token、待审批请求、结果缓存和审计原文；导入展示计划并在一个 SQLite 事务中应用，Token 重新签发。完整状态备份通过 SQLite 一致性快照完成，不只复制在线 `state.sqlite` 而漏掉 WAL。
 
-完整恢复停机执行，先备份现状，再检查版本和完整性；密钥文件与状态快照配套保管，默认配置导出不带密钥。定期备份由 Server 内的简单定时任务执行，初始建议每天一次、保留最近 7 份，不引入调度服务。
+完整恢复停机执行，先备份现状，再检查版本和完整性；密钥文件与状态快照配套保管，默认配置导出不带密钥。不执行定时备份，也不在启动或配置切换时生成备份；保留手动备份与显式升级、恢复、结构迁移前的安全快照。
 
 远程 MCP 明确配置监听与 CIDR，并使用 TLS 或用户已有反向代理。Admin 保持回环监听，远端桌面通过现有 SSH 隧道连接；纯客户端模式不因为远端连接而获得远端 OS 服务控制。V1 不增加 OAuth 服务器、网络发现或远程执行代理。

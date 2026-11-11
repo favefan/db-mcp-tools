@@ -187,8 +187,6 @@ func serve(ctx context.Context, dir, mode string, ready chan<- error) (result er
 	}
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
-	daily := time.NewTicker(24 * time.Hour)
-	defer daily.Stop()
 loop:
 	for {
 		select {
@@ -203,13 +201,7 @@ loop:
 			if err := s.Cleanup(); err != nil {
 				diagnostics.Event(ctx, slog.LevelError, "maintenance.cleanup_failed", "error", diagnostics.ErrorInfo(err))
 			}
-		case <-daily.C:
-			if _, err := s.Backup(ctx); err != nil {
-				diagnostics.Event(ctx, slog.LevelError, "maintenance.backup_failed", "error", diagnostics.ErrorInfo(err))
-			}
-			if err := s.RetainBackups(7); err != nil {
-				diagnostics.Event(ctx, slog.LevelError, "maintenance.retention_failed", "error", diagnostics.ErrorInfo(err))
-			}
+
 		}
 	}
 	shutdown, shutdownCancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -258,7 +250,7 @@ func AdminRequest(ctx context.Context, dir, endpoint, token, method, path string
 	client := &http.Client{Timeout: 5 * time.Minute, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect refused") }}
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("Server is unavailable")
+		return nil, errors.New("MCP Server is unavailable")
 	}
 	defer res.Body.Close()
 	out, err := io.ReadAll(io.LimitReader(res.Body, 20<<20))

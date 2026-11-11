@@ -143,7 +143,7 @@ export function RequestDetails({
         ) : q.error ? (
           <Empty title="请求详情读取失败">
             {errorMessage(q.error)}
-            {" · 可使用上方刷新按钮重试；请确认 Server 已升级至 1.0.8。"}
+            {" · 可使用上方刷新按钮重试；请确认 MCP Server 已升级至 1.0.8。"}
           </Empty>
         ) : (
           data && (

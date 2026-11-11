@@ -31,7 +31,7 @@ func (p *program) Start(service.Service) error {
 		err := serve(ctx, p.dir, "service", ready)
 		p.done <- err
 		if started := <-decision; started && err != nil && ctx.Err() == nil {
-			fmt.Fprintln(os.Stderr, "Server service failed:", err)
+			fmt.Fprintln(os.Stderr, "MCP Server service failed:", err)
 			os.Exit(1)
 		}
 	}()
@@ -55,6 +55,9 @@ func (p *program) Stop(service.Service) error {
 	}
 }
 func Service(dir, action, username string, system bool) (any, error) {
+	if action == "status" && service.ChosenSystem() == nil {
+		return map[string]any{"installed": false, "state": "unsupported"}, nil
+	}
 	switch action {
 	case "install", "uninstall", "start", "stop", "restart", "status", "run":
 	default:

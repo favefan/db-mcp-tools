@@ -82,7 +82,7 @@ func resolveManifest(root string, m RuntimeManifest) (string, error) {
 		return "", err
 	}
 	if hash != m.SHA256 {
-		return "", errors.New("installed executable checksum mismatch; redeploy the selected Server")
+		return "", errors.New("installed executable checksum mismatch; redeploy the selected MCP Server")
 	}
 	return real, nil
 }
@@ -132,7 +132,19 @@ func ForwardInstalled() (bool, int, error) {
 
 // Deploy requires a stopped data directory and saves a consistent rollback
 // snapshot. Versioned files avoid replacing an executable still open on Windows.
-func Deploy(ctx context.Context, dir string) (map[string]any, error) {
+func Deploy(ctx context.Context, dir string) (map[string]any, error) { return deploy(ctx, dir, true) }
+
+// Prepare is only for the first managed launch; routine starts never create backups.
+func Prepare(ctx context.Context, dir string) (map[string]any, error) {
+	if _, err := os.Stat(filepath.Join(runtimeDir(dir), "current.json")); err == nil {
+		return nil, errors.New("runtime is already prepared; use runtime upgrade")
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+	return deploy(ctx, dir, false)
+}
+
+func deploy(ctx context.Context, dir string, snapshot bool) (map[string]any, error) {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -162,10 +174,14 @@ func Deploy(ctx context.Context, dir string) (map[string]any, error) {
 		return nil, err
 	}
 	defer s.Close()
-	backup, err := s.Backup(ctx)
-	if err != nil {
-		return nil, err
+	var backup any
+	if snapshot {
+		backup, err = s.Backup(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	relative := filepath.Join("versions", model.Version+"-"+hash[:12], executableName())
 	target := filepath.Join(root, relative)
 	if err = os.MkdirAll(filepath.Dir(target), 0700); err != nil {

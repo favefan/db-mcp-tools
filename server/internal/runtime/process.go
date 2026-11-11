@@ -58,7 +58,7 @@ func Start(ctx context.Context, dir string) error {
 	if _, err := Initialize(dir); err != nil {
 		status, e := Status(ctx, dir)
 		if e == nil && status["running"] == true {
-			return errors.New("Server already running")
+			return errors.New("MCP Server already running")
 		}
 		return err
 	}
@@ -97,7 +97,7 @@ func Start(ctx context.Context, dir string) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-deadline.C:
-			return errors.New("Server startup timed out; inspect server.log")
+			return errors.New("MCP Server startup timed out; inspect server.log")
 		case <-ticker.C:
 			status, err := Status(ctx, dir)
 			if err == nil && status["running"] == true {
@@ -124,10 +124,10 @@ func StopInstance(ctx context.Context, dir, instance string) error {
 		return nil
 	}
 	if status["mode"] != "background" {
-		return errors.New("use the original terminal or OS service manager to stop this Server")
+		return errors.New("use the original terminal or OS service manager to stop this MCP Server")
 	}
 	if instance != "" && status["instance_id"] != instance {
-		return errors.New("Server process changed; refusing to stop a different instance")
+		return errors.New("MCP Server process changed; refusing to stop a different instance")
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "admin.token"))
 	if err != nil {
@@ -148,7 +148,7 @@ func StopInstance(ctx context.Context, dir, instance string) error {
 	}
 	res.Body.Close()
 	if res.StatusCode != 200 {
-		return errors.New("Server refused stop")
+		return errors.New("MCP Server refused stop")
 	}
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
@@ -159,7 +159,7 @@ func StopInstance(ctx context.Context, dir, instance string) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-deadline.C:
-			return errors.New("Server did not stop within 25 seconds")
+			return errors.New("MCP Server did not stop within 25 seconds")
 		case <-ticker.C:
 			st, _ := Status(ctx, dir)
 			if st["running"] != true {

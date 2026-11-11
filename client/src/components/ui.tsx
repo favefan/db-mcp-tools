@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { Slot } from "@radix-ui/react-slot";
-import { X } from "lucide-react";
+import { X, CircleAlert } from "lucide-react";
 import { Children, useRef, type ComponentProps, type ReactNode } from "react";
 
 export function Button({
@@ -149,7 +150,7 @@ export function Modal({
   onClose,
   wide = false,
   stable = false,
-  description = "管理数据库访问配置。保存后应用到 Server。",
+  description = "管理数据库访问配置。保存后应用到 MCP Server。",
 }: {
   title: string;
   children: ReactNode;
@@ -229,6 +230,31 @@ export function Drawer({
   );
 }
 
+export function Hint({ text }: { text: string }) {
+  return (
+    <Tooltip.Provider delayDuration={250}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <span
+            className="hint-trigger"
+            tabIndex={0}
+            aria-label={text}
+            onClick={(e) => e.preventDefault()}
+          >
+            <CircleAlert size={14} />
+          </span>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content className="hint-content" sideOffset={6}>
+            {text}
+            <Tooltip.Arrow className="hint-arrow" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+  );
+}
+
 export function Field({
   label,
   children,
@@ -240,9 +266,11 @@ export function Field({
 }) {
   return (
     <label className="field">
-      <span>{label}</span>
+      <span className="field-label">
+        {label}
+        {hint && <Hint text={hint} />}
+      </span>
       {children}
-      {hint && <small>{hint}</small>}
     </label>
   );
 }

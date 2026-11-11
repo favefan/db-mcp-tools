@@ -19,7 +19,7 @@ func exportDiagnostics(ctx context.Context, dir, endpoint, destination string) e
 	b, err := run.AdminRequest(ctx, dir, endpoint, os.Getenv("DBMCP_ADMIN_TOKEN"), "GET", "/admin/v1/diagnostics", nil)
 	if err != nil {
 		out["server_collection_error"] = diagnostics.ErrorInfo(err)
-		out["missing"] = []string{"live Server snapshot unavailable; local files only"}
+		out["missing"] = []string{"live MCP Server snapshot unavailable; local files only"}
 	} else {
 		var snapshot any
 		if json.Unmarshal(b, &snapshot) != nil {
@@ -33,7 +33,7 @@ func exportDiagnostics(ctx context.Context, dir, endpoint, destination string) e
 		return err
 	}
 	if destination == filepath.Join(dir, "state.sqlite") || destination == filepath.Join(dir, "admin.token") || destination == filepath.Join(dir, "key") {
-		return errors.New("diagnostic output must not replace Server state")
+		return errors.New("diagnostic output must not replace MCP Server state")
 	}
 	// Exclusive creation also prevents following a symlink or overwriting any
 	// existing state/configuration selected accidentally on a headless machine.

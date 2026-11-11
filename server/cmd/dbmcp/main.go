@@ -90,7 +90,7 @@ func command() *cobra.Command {
 	var resultFile string
 	var managerSID string
 	root := &cobra.Command{Use: "dbmcp", Short: "Database MCP Server, management CLI and STDIO Bridge", Version: model.Version, SilenceUsage: true, SilenceErrors: true}
-	root.PersistentFlags().StringVar(&dir, "data-dir", run.DefaultDir(), "Server data directory")
+	root.PersistentFlags().StringVar(&dir, "data-dir", run.DefaultDir(), "MCP Server data directory")
 	root.PersistentFlags().StringVar(&endpoint, "admin-url", "", "Admin endpoint (default: local deployment.toml)")
 	root.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Emit JSON (all business commands already return JSON)")
 	root.PersistentFlags().BoolVar(&elevate, "elevate", false, "Ask Windows to authorize a native service or runtime operation")
@@ -182,7 +182,7 @@ func command() *cobra.Command {
 	diagnosticCommand.Flags().StringVar(&diagnosticOutput, "out", "", "Destination diagnostic JSON file")
 	_ = diagnosticCommand.MarkFlagRequired("out")
 	root.AddCommand(diagnosticCommand)
-	runtimeCmd := &cobra.Command{Use: "runtime", Short: "Deploy Server in a stable versioned runtime directory"}
+	runtimeCmd := &cobra.Command{Use: "runtime", Short: "Deploy MCP Server in a stable versioned runtime directory"}
 	runtimeCmd.AddCommand(&cobra.Command{Use: "info", Short: "Read local deployment addresses without opening state", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		v, err := run.Info(cmd.Context(), dir)
 		if err != nil {
@@ -190,13 +190,23 @@ func command() *cobra.Command {
 		}
 		return output(v)
 	}})
+	runtimeCmd.AddCommand(&cobra.Command{Use: "prepare", Short: "Prepare the first managed runtime without a backup", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+		if _, err := run.Initialize(dir); err != nil {
+			return err
+		}
+		value, err := run.Prepare(cmd.Context(), dir)
+		if err != nil {
+			return err
+		}
+		return output(value)
+	}})
 	var launch, asService bool
 	var destination string
-	runtimeCmd.PersistentFlags().BoolVar(&launch, "start", false, "Start after deployment (upgrade also resumes a previously running Server)")
+	runtimeCmd.PersistentFlags().BoolVar(&launch, "start", false, "Start after deployment (upgrade also resumes a previously running MCP Server)")
 	runtimeCmd.PersistentFlags().BoolVar(&asService, "service", false, "Install or migrate as a native OS service")
 	runtimeCmd.PersistentFlags().BoolVar(&system, "system", false, "Use a system service instead of a POSIX user service")
 	runtimeCmd.PersistentFlags().StringVar(&username, "user", "", "Dedicated service account")
-	runtimeCmd.AddCommand(&cobra.Command{Use: "deploy", Short: "Deploy this build while Server is stopped; create a recovery snapshot", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	runtimeCmd.AddCommand(&cobra.Command{Use: "deploy", Short: "Deploy this build while MCP Server is stopped; create a recovery snapshot", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		if _, err := run.Initialize(dir); err != nil {
 			return err
 		}
@@ -206,7 +216,7 @@ func command() *cobra.Command {
 		}
 		return output(v)
 	}})
-	runtimeCmd.AddCommand(&cobra.Command{Use: "upgrade", Short: "Stop a managed Server, back up, select this build, and resume its previous mode", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	runtimeCmd.AddCommand(&cobra.Command{Use: "upgrade", Short: "Stop a managed MCP Server, back up, select this build, and resume its previous mode", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		v, err := run.Upgrade(cmd.Context(), dir, username, system, launch, asService)
 		if err != nil {
 			return err
@@ -241,7 +251,7 @@ func command() *cobra.Command {
 	initCmd.Flags().BoolVar(&allocatePorts, "allocate-ports", false, "Choose available loopback ports for a new deployment")
 	root.AddCommand(initCmd)
 	var mode string
-	serve := &cobra.Command{Use: "serve", Short: "Run the independent Server in this terminal", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	serve := &cobra.Command{Use: "serve", Short: "Run the independent MCP Server in this terminal", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		if mode != "foreground" && mode != "background" {
 			return errors.New("invalid run mode")
 		}
@@ -332,7 +342,7 @@ func command() *cobra.Command {
 	root.AddCommand(&cobra.Command{Use: "backup", Short: "Create an online consistent snapshot with matching keys", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		return call(cmd.Context(), dir, endpoint, "POST", "/admin/v1/backups", "")
 	}})
-	root.AddCommand(&cobra.Command{Use: "restore BACKUP_DIRECTORY", Short: "Restore a validated snapshot while Server is stopped; retain a recovery snapshot", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "restore BACKUP_DIRECTORY", Short: "Restore a validated snapshot while MCP Server is stopped; retain a recovery snapshot", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		v, err := run.Restore(cmd.Context(), dir, args[0])
 		if err != nil {
 			return err
@@ -341,7 +351,7 @@ func command() *cobra.Command {
 	}})
 	var credentials string
 	var wait time.Duration
-	bridge := &cobra.Command{Use: "bridge", Short: "Relay STDIO MCP to an existing Server; never starts another database executor", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error { return api.Bridge(cmd.Context(), credentials, wait) }}
+	bridge := &cobra.Command{Use: "bridge", Short: "Relay STDIO MCP to an existing MCP Server; never starts another database executor", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error { return api.Bridge(cmd.Context(), credentials, wait) }}
 	bridge.Flags().StringVar(&credentials, "credentials", "", "Private JSON file containing url and entity token")
 	_ = bridge.MarkFlagRequired("credentials")
 	bridge.Flags().DurationVar(&wait, "wait", 20*time.Second, "Maximum time to wait for administrator approval")

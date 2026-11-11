@@ -451,7 +451,7 @@ pub fn integration_preview(
 }
 
 // A manual export uses an already-issued entity credential. Identity, policy,
-// rotation and revocation remain entirely in Server.
+// rotation and revocation remain entirely in MCP Server.
 fn export_at(path: &Path, url: &str, token: &str) -> Result<Value, String> {
     validate_mcp_url(url)?;
     if token.is_empty() {

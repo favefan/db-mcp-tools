@@ -4,25 +4,25 @@
 
 ## 主要依赖
 
-| 能力         | 选择                                        | 用途与约束                                                |
-| ------------ | ------------------------------------------- | --------------------------------------------------------- |
-| SQL AST      | Bytebase Omni，固定提交 e500bc714251        | 各方言解析与字段来源分析；未知节点拒绝，不靠关键词放行    |
-| MCP          | 官方 Go SDK                                 | Streamable HTTP 与 STDIO Bridge；每个请求独立认证         |
-| 代理来源     | realclientip-go                             | 只对显式可信代理解析转发链，真实 peer 先校验              |
-| SQLite       | modernc.org/sqlite、goose                   | WAL、迁移、条件认领与在线备份；数据目录独占锁             |
-| PostgreSQL   | pgx stdlib                                  | database/sql 驱动；基础扩展元数据与非执行 Explain         |
-| MySQL        | go-sql-driver/mysql                         | 参数绑定、连接池与目录发现                                |
-| SQL Server   | go-mssqldb                                  | 命名参数、OUTPUT 与多数据库访问                           |
-| DM8          | gitee.com/chunanyong/dm，可选 dm 构建标签   | 原生 database/sql 接口，默认构建省略                      |
-| CLI / 服务   | Cobra、kardianos/service                    | CLI、后台进程与平台系统服务                               |
-| 配置与文件锁 | go-toml/v2、toml_edit、flock                | Go 部署配置、外部 TOML 注释保留与互斥                     |
-| 桌面         | Tauri 2、keyring、reqwest                   | 凭据、本机集成和 Admin 白名单代理，不打开业务 SQLite      |
-| 前端         | React、TanStack Query、React Hook Form、Zod | 页面、服务状态与表单                                      |
-| 交互组件     | Radix、Headless Tree、Lucide                | 弹窗 / Tabs、对象树多选与键盘交互、图标                   |
-| 本地环境标识 | uuid（v4）、tempfile                        | 命名 Profile 的随机 ID 与同目录原子保存，不增加业务状态库 |
-| 版本比较     | semver                                      | 前端及 Rust 的最低 Server 版本与随包升级判断              |
-| 日志         | slog、lumberjack、tauri-plugin-log          | 按 PID 分文件、滚动与诊断导出                             |
-| 打包         | archiver、Tauri NSIS 工具                   | 独立包、Windows 安装器和校验清单                          |
+| 能力         | 选择                                        | 用途与约束                                                  |
+| ------------ | ------------------------------------------- | ----------------------------------------------------------- |
+| SQL AST      | Bytebase Omni，固定提交 e500bc714251        | 各方言解析与字段来源分析；未知节点拒绝，不靠关键词放行      |
+| MCP          | 官方 Go SDK                                 | Streamable HTTP 与 STDIO Bridge；每个请求独立认证           |
+| 代理来源     | realclientip-go                             | 只对显式可信代理解析转发链，真实 peer 先校验                |
+| SQLite       | modernc.org/sqlite、goose                   | WAL、迁移、条件认领与在线备份；数据目录独占锁               |
+| PostgreSQL   | pgx stdlib                                  | database/sql 驱动；基础扩展元数据与非执行 Explain           |
+| MySQL        | go-sql-driver/mysql                         | 参数绑定、连接池与目录发现                                  |
+| SQL Server   | go-mssqldb                                  | 命名参数、OUTPUT 与多数据库访问                             |
+| DM8          | gitee.com/chunanyong/dm，可选 dm 构建标签   | 原生 database/sql 接口，默认构建省略                        |
+| CLI / 服务   | Cobra、kardianos/service                    | CLI、后台进程与平台系统服务                                 |
+| 配置与文件锁 | go-toml/v2、toml_edit、flock                | Go 部署配置、外部 TOML 注释保留与互斥                       |
+| 桌面         | Tauri 2、keyring、reqwest                   | 凭据、本机集成和 Admin 白名单代理，不打开业务 SQLite        |
+| 前端         | React、TanStack Query、React Hook Form、Zod | 页面、服务状态与表单                                        |
+| 交互组件     | Radix、Headless Tree、Lucide                | 弹窗 / Tabs / Popover / Tooltip、对象树多选与键盘交互、图标 |
+| 本地配置标识 | uuid（v4）、tempfile                        | 命名 Profile 的随机 ID 与同目录原子保存，不增加业务状态库   |
+| 版本比较     | semver                                      | 前端及 Rust 的最低 MCP Server 版本与可用升级提示            |
+| 日志         | slog、lumberjack、tauri-plugin-log          | 按 PID 分文件、滚动与诊断导出                               |
+| 打包         | archiver、Tauri NSIS 工具                   | 独立包、Windows 安装器和校验清单                            |
 
 ## SQL 与数据库边界
 
@@ -36,7 +36,7 @@ DM 驱动不能由客户端强制验证 TLS，只接受显式关闭 TLS 的本�
 
 ## 平台与配置
 
-桌面需要对应 OS 的原生依赖、图形会话和系统凭据存储，安装步骤见 [开发指南](development.md)。Server 可交叉编译，桌面必须在目标 OS 原生构建。GitHub CI 仅使用 Windows x64。
+桌面需要对应 OS 的原生依赖、图形会话和系统凭据存储，安装步骤见 [开发指南](development.md)。MCP Server 可交叉编译，桌面必须在目标 OS 原生构建。GitHub CI 仅使用 Windows x64。
 
 外部 MCP 配置使用预览指纹、受限备份和同目录原子保存；TOML 保留无关注释，JSON 保留无关值并按两空格排版。其他进程不共享项目文件锁，因此采用乐观冲突检查，不宣称能锁住外部编辑器。移除只处理语义哈希一致的自身条目。
 

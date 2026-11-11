@@ -43,7 +43,7 @@ func stopManaged(ctx context.Context, dir, username string, system bool) (runnin
 		case "service":
 			_, err = Service(dir, "stop", username, system)
 		default:
-			err = errors.New("stop the foreground Server in its original terminal before deploying")
+			err = errors.New("stop the foreground MCP Server in its original terminal before deploying")
 		}
 	} else if native {
 		// Also stop a service still starting or recovering from startup failure.

@@ -42,7 +42,6 @@ export function Logs() {
     <Page
       title="访问日志"
       icon={ScrollText}
-      description="查询、审批、拒绝与管理变更；默认保留 30 天。"
       actions={
         <>
           <DiagnosticExport />

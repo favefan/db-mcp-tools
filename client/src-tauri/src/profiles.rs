@@ -26,7 +26,6 @@ pub struct Profile {
     pub data_dir: String,
     pub executable: String,
     pub server_id: String,
-    pub follow_client: bool,
     pub import_legacy_ui: bool,
     pub preferences: preferences::Preferences,
     #[serde(skip_serializing)]
@@ -64,17 +63,15 @@ impl Owned {
         let instance_id = status["instance_id"]
             .as_str()
             .filter(|s| !s.is_empty())
-            .ok_or("Server 缺少进程身份，请升级到 1.0.10")?
+            .ok_or("MCP Server 缺少进程身份，请升级到 1.0.11")?
             .into();
+        if status["mode"] != "background" {
+            return Err("前台进程或系统服务请使用已有 MCP Server 通过 HTTP 连接".into());
+        }
         Ok(Self {
             profile,
             instance_id,
         })
-    }
-    pub fn matches(&self, profile: &Profile, status: &Value) -> bool {
-        self.profile.id == profile.id
-            && self.profile.server_id == status["server_id"]
-            && self.instance_id == status["instance_id"]
     }
 }
 #[derive(Serialize)]
@@ -165,7 +162,6 @@ pub fn load(dir: &Path) -> Result<Store, String> {
         } else {
             ConnectionMode::Local
         };
-        p.follow_client = false;
         p.import_legacy_ui = true;
         p.preferences = preferences::load(&dir.join("preferences.json"), p.close_to_tray)?;
         validate(&p)?;
@@ -191,17 +187,15 @@ pub fn validate(p: &Profile) -> Result<(), String> {
         return Err("Profile ID 无效".into());
     }
     if p.name.trim().is_empty() || p.name.len() > 160 {
-        return Err("请输入环境名称（不超过 160 字节）".into());
+        return Err("请输入配置名称（不超过 160 字节）".into());
     }
     validate_endpoint(&p.endpoint)?;
     if !matches!(p.preferences.theme.as_str(), "system" | "light" | "dark") {
         return Err("主题无效".into());
     }
     match p.mode {
-        ConnectionMode::Existing
-            if !p.data_dir.is_empty() || !p.executable.is_empty() || p.follow_client =>
-        {
-            return Err("已有 Server 不能携带本机托管配置".into())
+        ConnectionMode::Existing if !p.data_dir.is_empty() || !p.executable.is_empty() => {
+            return Err("已有 MCP Server 不能携带本机托管配置".into())
         }
         ConnectionMode::Local
             if !Path::new(&p.data_dir).is_absolute()
@@ -227,9 +221,9 @@ pub fn operation<'a>(
     let guard = state
         .operations
         .try_read()
-        .map_err(|_| "正在切换环境或退出，请稍候")?;
+        .map_err(|_| "正在切换配置或退出，请稍候")?;
     if !matches(state, session) {
-        return Err("会话已改变，请重新打开当前环境的操作".into());
+        return Err("会话已改变，请重新打开当前配置的操作".into());
     }
     Ok(guard)
 }
@@ -290,7 +284,7 @@ pub async fn command(p: &Profile, args: Vec<String>) -> Result<Value, String> {
     let p = p.clone();
     tauri::async_runtime::spawn_blocking(move || {
         if p.mode != ConnectionMode::Local || p.executable.is_empty() {
-            return Err("请为当前本机环境选择 dbmcp 程序".into());
+            return Err("请为当前本机配置选择 dbmcp 程序".into());
         }
         let mut cmd = Command::new(&p.executable);
         cmd.arg("--data-dir").arg(&p.data_dir).args(args);
@@ -318,12 +312,11 @@ async fn stop_owned(state: &Desktop) -> Result<(), String> {
         let p = owned.profile.clone();
         let status = call(&p, &["run", "status"]).await?;
         if status["running"] == true {
-            if !owned.matches(&p, &status) || status["mode"] != "background" {
-                return Err("本机进程身份或运行方式已改变，未停止，请检查当前环境".into());
-            }
-            call(&p, &["run", "stop", "--instance-id", &owned.instance_id]).await?;
+            check_identity(&p, &status)?;
+            let current = Owned::from_status(p.clone(), &status)?;
+            call(&p, &["run", "stop", "--instance-id", &current.instance_id]).await?;
         } else if Path::new(&p.data_dir).join("runtime.json").exists() {
-            return Err("无法确认本次启动的 Server 已停止，请检查本机状态后重试".into());
+            return Err("无法确认本次启动的 MCP Server 已停止，请检查本机状态后重试".into());
         }
         state.session.lock().map_err(|e| e.to_string())?.owned = None;
     }
@@ -333,94 +326,49 @@ pub async fn reconnect(
     app: &tauri::AppHandle,
     mut p: Profile,
     token: Option<String>,
-    auto: bool,
 ) -> Result<Value, String> {
     let state = app.state::<Desktop>();
     if p.mode == ConnectionMode::Local {
-        // Upgrade only this app's managed launcher. Custom programs remain explicit.
-        let defaults = crate::local_defaults(
-            app.clone(),
-            Some(p.executable.clone()),
-            Some(p.data_dir.clone()),
-        )
-        .await?;
-        let parse = |v: &Value| v.as_str().and_then(|s| semver::Version::parse(s).ok());
-        if defaults["managed_runtime"] == true
-            && parse(&defaults["bundled_build"]["version"])
-                .zip(parse(&defaults["build"]["version"]))
-                .is_some_and(|(bundled, current)| bundled > current)
-        {
-            let status = call(&p, &["run", "status"]).await?;
-            check_identity(&p, &status)?;
-            if p.follow_client && status["running"] == true {
-                return Err("跟随 Server 已在外部运行，请先停止后重新连接，以便升级".into());
-            }
-            let mut source = p.clone();
-            source.executable = defaults["bundled_executable"]
-                .as_str()
-                .ok_or("缺少内置程序")?
-                .into();
-            let result = call(&source, &["runtime", "upgrade"]).await?;
-            if let Some(launcher) = result["launcher"].as_str() {
-                p.executable = launcher.into();
-            }
+        require_managed_program(&p)?;
+        if !Path::new(&p.data_dir).join("deployment.toml").exists() {
+            call(&p, &["init", "--allocate-ports"]).await?;
         }
-        let version = crate::program_version(Path::new(&p.executable))?;
-        let modern = version["version"]
-            .as_str()
-            .and_then(|s| semver::Version::parse(s).ok())
-            .is_some_and(|v| v >= semver::Version::new(1, 0, 10));
-        if modern {
-            if !Path::new(&p.data_dir).join("deployment.toml").exists() {
-                call(&p, &["init", "--allocate-ports"]).await?;
-            }
-            let info = call(&p, &["runtime", "info"]).await?;
-            check_identity(&p, &info["status"])?;
-            p.endpoint = format!(
-                "http://{}",
-                info["admin"].as_str().ok_or("缺少本机管理地址")?
-            );
-        } else if p.follow_client {
-            return Err("随客户端启停需要 1.0.10 或更新的本机程序，请先升级所选程序".into());
+        let info = call(&p, &["runtime", "info"]).await?;
+        p.endpoint = format!(
+            "http://{}",
+            info["admin"].as_str().ok_or("缺少本机管理地址")?
+        );
+        let mut status = info["status"].clone();
+        check_identity(&p, &status)?;
+        if status["running"] == true {
+            require_running_version(&status)?;
         }
-        if p.follow_client {
-            let service = call(&p, &["service", "status"]).await?;
-            if service["installed"] != false {
-                return Err("系统服务或服务状态未知，不能启用随客户端启停".into());
-            }
-            let status = call(&p, &["run", "status"]).await?;
-            if status["running"] == true {
-                let owned = state
-                    .session
-                    .lock()
-                    .map_err(|e| e.to_string())?
-                    .owned
-                    .clone();
-                if !owned.is_some_and(|o| o.matches(&p, &status)) {
+        if status["running"] != true {
+            let native = call(&p, &["service", "status"]).await?;
+            match native["installed"].as_bool() {
+                Some(true) => {
                     return Err(
-                        "该 Server 已由外部启动；请先停止，再由当前环境启动，或关闭随客户端启停"
-                            .into(),
+                        "该目录已注册为系统服务，请使用已有 MCP Server 通过 HTTP 连接".into(),
                     );
                 }
-            } else if auto {
-                let result = call(&p, &["runtime", "upgrade", "--start"]).await?;
-                if let Some(launcher) = result["launcher"].as_str() {
-                    p.executable = launcher.into()
+                Some(false) => {
+                    if !Path::new(&p.data_dir).join("runtime/current.json").exists() {
+                        call(&p, &["runtime", "prepare"]).await?;
+                    }
+                    call(&p, &["run", "start"]).await?;
                 }
-                let mut started = p.clone();
-                started.server_id = result["status"]["server_id"]
-                    .as_str()
-                    .ok_or("启动结果缺少 Server 身份")?
-                    .into();
-                state.session.lock().map_err(|e| e.to_string())?.owned =
-                    Some(Owned::from_status(started, &result["status"])?);
-                check_identity(&p, &result["status"])?;
-                p.server_id = result["status"]["server_id"]
-                    .as_str()
-                    .ok_or("启动结果缺少 Server 身份")?
-                    .into();
+                None => return Err("无法确认本机系统服务状态".into()),
             }
+            status = call(&p, &["run", "status"]).await?;
         }
+        let mut managed = p.clone();
+        managed.server_id = status["server_id"]
+            .as_str()
+            .ok_or("MCP Server 缺少身份")?
+            .into();
+        state.session.lock().map_err(|e| e.to_string())?.owned =
+            Some(Owned::from_status(managed, &status)?);
+        check_identity(&p, &status)?;
     }
     let credential = if let Some(token) = token.filter(|t| !t.is_empty()) {
         token
@@ -431,15 +379,15 @@ pub async fn reconnect(
     } else {
         entry(&p.id)?
             .get_password()
-            .map_err(|_| "请为此环境填写管理员凭据")?
+            .map_err(|_| "请为此配置填写管理员凭据")?
     };
     let health = request(&state, &p, &credential, "GET", "/admin/v1/health", None).await?;
     if health["api_version"] != 1 {
-        return Err("Server API 版本不兼容".into());
+        return Err("MCP Server API 版本不兼容".into());
     }
-    let id = health["server_id"].as_str().ok_or("Server 缺少身份")?;
+    let id = health["server_id"].as_str().ok_or("MCP Server 缺少身份")?;
     if !p.server_id.is_empty() && p.server_id != id {
-        return Err("Server 身份发生变化，未切换连接".into());
+        return Err("MCP Server 身份发生变化，未切换连接".into());
     }
     p.server_id = id.into();
     let mut next = state.catalog.lock().map_err(|e| e.to_string())?.clone();
@@ -463,6 +411,38 @@ pub async fn reconnect(
     s.token = Some(credential);
     s.connected = true;
     Ok(health)
+}
+pub fn require_running_version(status: &Value) -> Result<(), String> {
+    if status["version"]
+        .as_str()
+        .and_then(|s| semver::Version::parse(s).ok())
+        .is_none_or(|v| v < semver::Version::new(1, 0, 11))
+    {
+        return Err("运行中的 MCP Server 版本过旧，请在设置中显式升级".into());
+    }
+    Ok(())
+}
+pub fn require_managed_program(p: &Profile) -> Result<(), String> {
+    let modern = |v: &Value| {
+        v.as_str()
+            .and_then(|s| semver::Version::parse(s).ok())
+            .is_some_and(|v| v >= semver::Version::new(1, 0, 11))
+    };
+    let version = crate::program_version(Path::new(&p.executable))?;
+    if !modern(&version["version"]) {
+        return Err("本机托管需要 1.0.11 或更新的 MCP Server，请先升级程序".into());
+    }
+    match fs::read(Path::new(&p.data_dir).join("runtime/current.json")) {
+        Ok(bytes) => {
+            let manifest: Value = serde_json::from_slice(&bytes).map_err(|_| "本机程序清单无效")?;
+            if !modern(&manifest["version"]) {
+                return Err("已部署的 MCP Server 版本过旧，请在设置中显式升级".into());
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e.to_string()),
+    }
+    Ok(())
 }
 fn begin(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<Desktop>();
@@ -506,7 +486,7 @@ pub async fn switch_profile(
     let _guard = state
         .operations
         .try_write()
-        .map_err(|_| "有操作正在进行，请完成后再切换环境")?;
+        .map_err(|_| "有操作正在进行，请完成后再切换配置")?;
     let p = state
         .catalog
         .lock()
@@ -515,7 +495,7 @@ pub async fn switch_profile(
         .iter()
         .find(|p| p.id == id)
         .cloned()
-        .ok_or("环境不存在")?;
+        .ok_or("配置不存在")?;
     validate(&p)?;
     let target_id = p.id.clone();
     begin(&app)?;
@@ -523,8 +503,8 @@ pub async fn switch_profile(
     let result: Result<(), String> = async {
         stop_owned(&state).await?;
         released_previous = true;
-        if connect_now {
-            reconnect(&app, p, None, true).await?;
+        if connect_now || p.mode == ConnectionMode::Local {
+            reconnect(&app, p, None).await?;
         } else {
             let mut next = state.catalog.lock().map_err(|e| e.to_string())?.clone();
             next.active_id = Some(p.id.clone());
@@ -590,7 +570,6 @@ pub async fn save_profile(
     if profile.mode == ConnectionMode::Existing {
         profile.data_dir.clear();
         profile.executable.clear();
-        profile.follow_client = false;
     } else if profile.data_dir.is_empty() {
         profile.data_dir = app
             .path()
@@ -608,14 +587,14 @@ pub async fn save_profile(
             && (current.connected || current.owned.is_some())
     };
     if active_connected {
-        return Err("请先断开当前环境，再编辑配置".into());
+        return Err("请先断开当前配置，再编辑配置".into());
     }
     let mut next = state.catalog.lock().map_err(|e| e.to_string())?.clone();
     if next.version != 1 {
-        return Err("环境配置未成功加载，请先修复配置文件".into());
+        return Err("配置未成功加载，请先修复配置文件".into());
     }
     if !fresh && !next.profiles.iter().any(|p| p.id == profile.id) {
-        return Err("环境不存在".into());
+        return Err("配置不存在".into());
     }
     if next.profiles.iter().any(|p| {
         p.id != profile.id
@@ -623,21 +602,7 @@ pub async fn save_profile(
             && p.mode == ConnectionMode::Local
             && same_path(&p.data_dir, &profile.data_dir)
     }) {
-        return Err("此数据目录已属于另一个本机环境".into());
-    }
-    if profile.follow_client {
-        let version = crate::program_version(Path::new(&profile.executable))?;
-        if version["version"]
-            .as_str()
-            .and_then(|s| semver::Version::parse(s).ok())
-            .is_none_or(|v| v < semver::Version::new(1, 0, 10))
-        {
-            return Err("随客户端启停需要 1.0.10 或更新的本机程序".into());
-        }
-        let service = call(&profile, &["service", "status"]).await?;
-        if service["installed"] != false {
-            return Err("系统服务或服务状态未知，不能启用随客户端启停".into());
-        }
+        return Err("此数据目录已属于另一个本机配置".into());
     }
     if let Some(previous) = next.profiles.iter().find(|p| p.id == profile.id) {
         if profile.mode == ConnectionMode::Existing
@@ -713,12 +678,12 @@ pub fn delete_profile(
         .map_err(|_| "有操作正在进行，请稍候")?;
     let s = state.session.lock().map_err(|e| e.to_string())?;
     if s.profile.as_ref().is_some_and(|p| p.id == id) && (s.connected || s.owned.is_some()) {
-        return Err("请先断开此环境".into());
+        return Err("请先断开此配置".into());
     }
     drop(s);
     let mut next = state.catalog.lock().map_err(|e| e.to_string())?.clone();
     if !next.profiles.iter().any(|p| p.id == id) {
-        return Err("环境不存在".into());
+        return Err("配置不存在".into());
     }
     next.profiles.retain(|p| p.id != id);
     let active = next.active_id.as_ref() == Some(&id);
@@ -766,7 +731,7 @@ pub fn persist_preferences(
         .map_err(|e| e.to_string())?
         .profile
         .as_ref()
-        .ok_or("请先创建环境")?
+        .ok_or("请先创建配置")?
         .id
         .clone();
     let mut stored = state.catalog.lock().map_err(|e| e.to_string())?;
@@ -775,7 +740,7 @@ pub fn persist_preferences(
         .profiles
         .iter_mut()
         .find(|p| p.id == id)
-        .ok_or("环境不存在")?;
+        .ok_or("配置不存在")?;
     p.preferences = next.clone();
     p.import_legacy_ui = false;
     save(&directory(app)?.join("profiles.json"), &catalog)?;
@@ -860,7 +825,7 @@ pub async fn connect_current(
     }
     let p = crate::read_profile(state)?;
     begin(app)?;
-    let result = reconnect(app, p, token, false).await;
+    let result = reconnect(app, p, token).await;
     finish(app, &result.as_ref().map(|_| ()).map_err(Clone::clone));
     result
 }
@@ -869,10 +834,9 @@ pub fn local_result(
     state: &Desktop,
     p: &Profile,
     action: &str,
-    before: Option<&Value>,
     value: &Value,
 ) -> Result<(), String> {
-    if matches!(action, "status" | "service-status") {
+    if matches!(action, "status") {
         return Ok(());
     }
     let mut next = p.clone();
@@ -893,7 +857,7 @@ pub fn local_result(
     if status["running"] == true {
         if let Some(id) = status["server_id"].as_str() {
             if !p.server_id.is_empty() && p.server_id != id {
-                return Err("本机进程身份与当前环境不一致".into());
+                return Err("本机进程身份与当前配置不一致".into());
             }
             next.server_id = id.into()
         }
@@ -906,17 +870,13 @@ pub fn local_result(
     *state.catalog.lock().map_err(|e| e.to_string())? = catalog;
     let mut runtime = state.session.lock().map_err(|e| e.to_string())?;
     runtime.profile = Some(next.clone());
-    if next.follow_client
+    if next.mode == ConnectionMode::Local
         && matches!(action, "start" | "restart" | "upgrade")
         && status["running"] == true
-        && status["mode"] == "background"
     {
-        let owned = runtime.owned.as_ref().is_some_and(|o| o.profile.id == p.id);
-        if owned || before.is_some_and(|b| b["running"] == false) {
-            runtime.owned = Some(Owned::from_status(next, status)?)
-        }
+        runtime.owned = Some(Owned::from_status(next, status)?);
     }
-    if matches!(action, "stop" | "service-stop" | "restore") {
+    if matches!(action, "stop" | "restore") {
         runtime.connected = false;
         runtime.token = None;
         runtime.owned = None;
@@ -928,7 +888,7 @@ pub fn local_result(
 }
 pub fn check_identity(p: &Profile, status: &Value) -> Result<(), String> {
     if status["running"] == true && !p.server_id.is_empty() && status["server_id"] != p.server_id {
-        return Err("本机 Server 身份与环境配置不一致".into());
+        return Err("本机 MCP Server 身份与配置不一致".into());
     }
     Ok(())
 }
@@ -958,7 +918,6 @@ mod tests {
         .unwrap();
         let mut store = load(dir.path()).unwrap();
         assert_eq!(store.active_id.as_deref(), Some("legacy"));
-        assert!(!store.profiles[0].follow_client);
         assert!(store.profiles[0].import_legacy_ui);
         assert_eq!(store.profiles[0].server_id, "original");
         assert_eq!(store.profiles[0].name, "default");
@@ -985,7 +944,6 @@ mod tests {
         let p = &store.profiles[0];
         assert_eq!(p.name, "default");
         assert_eq!(store.active_id.as_ref(), Some(&p.id));
-        assert!(!p.follow_client);
         validate(p).unwrap();
         save(&dir.path().join("profiles.json"), &store).unwrap();
         assert_eq!(load(dir.path()).unwrap().profiles[0].id, p.id);
@@ -1027,23 +985,27 @@ mod tests {
         assert!(super::operation(&state, &stamp).is_err());
     }
     #[test]
-    fn ownership_rejects_replacement_process_even_with_same_server_identity() {
+    fn local_control_requires_server_identity_and_supported_process_mode() {
+        assert!(require_running_version(&json!({"version":"1.0.10"})).is_err());
+        assert!(require_running_version(&json!({"version":"1.0.11"})).is_ok());
         let mut p = profile("first");
         p.server_id = "same-data".into();
-        let owned = Owned::from_status(p.clone(), &json!({"instance_id":"original"})).unwrap();
-        assert!(owned.matches(
+        assert!(check_identity(
             &p,
-            &json!({"server_id":"same-data","instance_id":"original"})
-        ));
-        assert!(!owned.matches(
-            &p,
-            &json!({"server_id":"same-data","instance_id":"replacement"})
-        ));
-        assert!(!owned.matches(
-            &profile("second"),
-            &json!({"server_id":"same-data","instance_id":"original"})
-        ));
-        assert!(check_identity(&p, &json!({"running":true,"server_id":"other-data"})).is_err());
+            &json!({"running":true,"server_id":"same-data","instance_id":"replacement"})
+        )
+        .is_ok());
+        assert!(check_identity(&p, &json!({"running":true,"server_id":"different-data"})).is_err());
+        assert!(Owned::from_status(
+            p.clone(),
+            &json!({"instance_id":"current","mode":"foreground"})
+        )
+        .is_err());
+        assert!(Owned::from_status(p.clone(), &json!({"mode":"background"})).is_err());
+        let owned =
+            Owned::from_status(p, &json!({"instance_id":"replacement","mode":"background"}))
+                .unwrap();
+        assert_eq!(owned.instance_id, "replacement");
     }
 }
 #[tauri::command]

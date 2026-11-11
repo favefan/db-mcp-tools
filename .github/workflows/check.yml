@@ -1,8 +1,6 @@
 name: Windows checks
 on:
   pull_request:
-  push:
-    branches: [main]
 permissions:
   contents: read
 concurrency:
@@ -20,29 +18,4 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Format
-        run: pnpm format:check
-      - name: Release version guard
-        run: node --test scripts/release-version.test.mjs
-      - name: Frontend types
-        run: pnpm --dir client typecheck
-      - name: Frontend lint
-        run: pnpm --dir client lint
-      - name: Frontend build
-        run: pnpm --dir client build
-      - name: Go tests (container tests skip without explicit opt-in)
-        run: go -C server test ./...
-      - name: Go vet
-        run: go -C server vet ./...
-      - name: Rust tests
-        run: cargo test --manifest-path client/src-tauri/Cargo.toml --locked
-      - name: Rust clippy
-        run: cargo clippy --manifest-path client/src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-      - name: Regenerate API contract
-        run: pnpm generate:api
-      - name: Check generated contract and locks
-        run: git diff --exit-code -- docs/openapi.json client/src/lib/contract.ts pnpm-lock.yaml server/go.mod server/go.sum client/src-tauri/Cargo.lock
-      - name: Build development Server
-        run: go -C server build -o bin/dbmcp.exe ./cmd/dbmcp
-      - name: Isolated runtime smoke
-        run: pnpm smoke:runtime
+      - uses: ./.github/actions/check

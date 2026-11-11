@@ -42,7 +42,6 @@ export function Entities({ onAuthorize }: { onAuthorize: (entity: string) => voi
       title="访问实体"
       icon={Users}
       count={q.data?.length ?? 0}
-      description="为每个 Agent 分配独立凭据，按实例授予访问权限。"
       actions={
         <>
           <Button
@@ -468,7 +467,7 @@ function GenericExport({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className="form-stack">
-      <Field label="通用 HTTP MCP 地址" hint="填写此 Server 的 MCP 地址；远程连接使用 HTTPS。">
+      <Field label="通用 HTTP MCP 地址" hint="填写此 MCP Server 的 MCP 地址；远程连接使用 HTTPS。">
         <input value={url} onChange={(e) => setUrl(e.target.value)} />
       </Field>
       <p className="muted">

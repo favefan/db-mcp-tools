@@ -20,7 +20,6 @@ export interface Profile {
   id: string;
   name: string;
   mode: "local" | "existing";
-  follow_client: boolean;
   preferences: DesktopPreferences;
   import_legacy_ui?: boolean;
   endpoint: string;
@@ -63,6 +62,7 @@ export interface LocalDefaults {
   executable?: string;
   bundled: boolean;
   managed_runtime?: boolean;
+  deployed_version?: string;
   bundled_executable?: string;
   bundled_build?: LocalDefaults["build"];
   platform: string;
@@ -94,7 +94,7 @@ export const getProfile = () => invoke<Profile | null>("get_profile");
 export const connect = async (profile: Profile, token: string) => {
   const health = await invoke<Health>("connect_profile", { profile, token: token || null });
   const active = await getSession();
-  if (active.current?.id !== profile.id || !active.connected) throw new Error("连接期间环境已切换");
+  if (active.current?.id !== profile.id || !active.connected) throw new Error("连接期间配置已切换");
   serverHealth = health;
   return health;
 };
@@ -106,7 +106,7 @@ export const localCommand = (profile: Profile, action: string) =>
   });
 export async function getLocalStatus(profile: Profile): Promise<LocalStatus> {
   const status = await localCommand(profile, "status");
-  if (typeof status.running !== "boolean") throw new Error("本机 Server 状态响应无效");
+  if (typeof status.running !== "boolean") throw new Error("本机 MCP Server 状态响应无效");
   return { ...status, running: status.running };
 }
 export const localRestore = (profile: Profile, backup: string) =>

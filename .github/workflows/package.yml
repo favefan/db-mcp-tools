@@ -18,7 +18,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Independent Server without DM
+      - name: Independent MCP Server without DM
         run: pnpm package:server --platform=windows --arch=amd64
       - name: Pure client
         run: pnpm package:client --server=none --target=x86_64-pc-windows-msvc

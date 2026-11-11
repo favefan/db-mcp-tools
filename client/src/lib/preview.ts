@@ -92,7 +92,6 @@ let profile: Profile = {
   id: "preview-local",
   name: "default",
   mode: "local",
-  follow_client: false,
   preferences: {
     theme: "system",
     notifications: false,
@@ -111,7 +110,7 @@ const profiles: Profile[] = [
   {
     ...structuredClone(profile),
     id: "preview-existing",
-    name: "同一 Server · 深色环境",
+    name: "同一 MCP Server · 深色配置",
     mode: "existing",
     data_dir: "",
     executable: "",
@@ -429,7 +428,7 @@ export async function previewInvoke(
       break;
     }
     case "delete_profile": {
-      if (args.id === profile.id && connected) throw new Error("请先断开此环境");
+      if (args.id === profile.id && connected) throw new Error("请先断开此配置");
       const i = profiles.findIndex((p) => p.id === args.id);
       if (i >= 0) profiles.splice(i, 1);
       if (args.id === profile.id) {
@@ -447,7 +446,7 @@ export async function previewInvoke(
     }
     case "switch_profile": {
       const p = profiles.find((p) => p.id === args.id);
-      if (!p) throw new Error("环境不存在");
+      if (!p) throw new Error("配置不存在");
       profile = p;
       preferences = p.preferences;
       generation++;
@@ -510,7 +509,7 @@ export async function previewInvoke(
       result = { ...health, server_id: profile.server_id };
       break;
     case "admin_request":
-      if (!connected) throw new Error("当前环境未连接");
+      if (!connected) throw new Error("当前配置未连接");
       result = await request(String(args.path), String(args.method), args.body);
       if (args.path === "/admin/v1/health") result = { ...health, server_id: profile.server_id };
       break;

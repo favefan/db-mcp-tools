@@ -34,10 +34,6 @@ export function Registrations({ focusEntity }: { focusEntity?: string }) {
   const pending = q.data?.filter((r) => r.status === "pending") ?? [];
   return (
     <>
-      <p className="muted">
-        Agent
-        首次使用独立接入凭据时自动登记。确认实例和权限前，不能发现或访问任何数据库。名称与来源仅供辨认，身份由接入凭据稳定识别。
-      </p>
       {q.error ? (
         <Empty title="实体登记读取失败">{errorMessage(q.error)}</Empty>
       ) : !pending.length ? (

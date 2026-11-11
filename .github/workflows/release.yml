@@ -33,7 +33,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot read source commit' }
           "sha=$sha" >> $env:GITHUB_OUTPUT
       - uses: ./.github/actions/setup
-      - name: Independent Server without DM
+      - uses: ./.github/actions/check
+      - name: Independent MCP Server without DM
         run: pnpm package:server --platform=windows --arch=amd64
       - name: Pure client
         run: pnpm package:client --server=none --target=x86_64-pc-windows-msvc

@@ -34,7 +34,6 @@ export function Simulator({
   return (
     <section className="panel form-stack">
       <h3>规则模拟器</h3>
-      <p className="muted">按当前实体、来源和原始 SQL 分析权限与审批决策。</p>
       <div className="form-grid">
         <Field label="实例">
           <select value={instance} onChange={(e) => setInstance(e.target.value)}>

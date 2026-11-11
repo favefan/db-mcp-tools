@@ -60,14 +60,10 @@ export function Integrations({ profile, health }: { profile: Profile | null; hea
           安装 MCP 配置
         </Button>
       </div>
-      <p className="muted">
-        每份配置保存独立接入凭据。Agent 首次连接时自动登记为待授权，之后在“待审批 →
-        实体登记”确认实例和权限。安装前预览条目并保存备份；项目配置含凭据时请勿提交版本库。
-      </p>
       {list.error && <p className="error">{errorMessage(list.error)}</p>}
       {!list.data?.length && (
         <p className="muted">
-          尚未安装配置。连接 Server 后即可准备接入，无需预先创建实体或绑定实例。
+          尚未安装配置。连接 MCP Server 后即可准备接入，无需预先创建实体或绑定实例。
         </p>
       )}
       <DataList>
@@ -85,7 +81,9 @@ export function Integrations({ profile, health }: { profile: Profile | null; hea
               variant="text"
               danger
               disabled={busy || health?.server_id !== r.server_id}
-              title={health?.server_id !== r.server_id ? "连接原 Server 后撤销凭据" : "预览移除"}
+              title={
+                health?.server_id !== r.server_id ? "连接原 MCP Server 后撤销凭据" : "预览移除"
+              }
               onClick={async () => {
                 setBusy(true);
                 try {

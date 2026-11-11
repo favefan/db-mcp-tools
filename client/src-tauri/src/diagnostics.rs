@@ -294,7 +294,7 @@ pub async fn snapshot(app: &tauri::AppHandle) -> Result<Value, String> {
                 ),
             )
             .await
-            .map_err(|_| "Server diagnostic request timed out".to_string())?
+            .map_err(|_| "MCP Server diagnostic request timed out".to_string())?
         }
         .await;
         match collected {
@@ -304,7 +304,7 @@ pub async fn snapshot(app: &tauri::AppHandle) -> Result<Value, String> {
             }
             Err(e) => {
                 out["server_status"] = json!("unavailable");
-                out["issues"] = json!([{"stage":stage,"error_fingerprint":fingerprint(&e),"message":"Server 日志未取得：检查连接与认证；旧 Server 需升级后才能提供诊断快照。"}])
+                out["issues"] = json!([{"stage":stage,"error_fingerprint":fingerprint(&e),"message":"MCP Server 日志未取得：检查连接与认证；旧 MCP Server 需升级后才能提供诊断快照。"}])
             }
         }
     }
@@ -329,7 +329,7 @@ pub async fn export(app: tauri::AppHandle) -> Result<Value, String> {
     let _guard = state
         .operations
         .try_read()
-        .map_err(|_| "正在切换环境，请稍候")?;
+        .map_err(|_| "正在切换配置，请稍候")?;
     let dialog_app = app.clone();
     let path = tauri::async_runtime::spawn_blocking(move || {
         dialog_app
@@ -366,7 +366,7 @@ async fn export_to(app: tauri::AppHandle, path: PathBuf) -> Result<Value, String
             .canonicalize()
             .is_ok_and(|root| parent.starts_with(root))
         {
-            return Err("请将诊断包保存到应用配置和 Server 数据目录之外".into());
+            return Err("请将诊断包保存到应用配置和 MCP Server 数据目录之外".into());
         }
     }
     let value = snapshot(&app).await?;
@@ -458,7 +458,7 @@ pub async fn diagnostics_export(
     let _guard = state
         .operations
         .try_read()
-        .map_err(|_| "正在切换环境，请稍候")?;
+        .map_err(|_| "正在切换配置，请稍候")?;
     match destination {
         Some(path) => export_to(app.clone(), path).await,
         None => export(app.clone()).await,

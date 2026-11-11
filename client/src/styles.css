@@ -109,7 +109,8 @@ textarea::placeholder {
 textarea {
   resize: vertical;
 }
-input[type="checkbox"] {
+input[type="checkbox"],
+input[type="radio"] {
   width: 14px;
   height: 14px;
   min-height: 0;
@@ -312,12 +313,16 @@ nav .back-button {
 }
 .collapsed .brand {
   justify-content: center;
+  padding: 0;
 }
 .collapsed .brand-mark {
   display: none;
 }
 .collapsed .collapse-button {
   margin: 0;
+}
+.collapsed nav {
+  scrollbar-gutter: auto;
 }
 .collapsed nav button,
 .collapsed .settings-button {
@@ -787,7 +792,7 @@ details > .stack {
 .settings-fields .field {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) minmax(240px, 1.25fr);
-  grid-template-rows: auto auto;
+  grid-template-rows: auto;
   gap: 0 var(--space-6);
   align-items: center;
   padding: var(--space-3) var(--space-4);
@@ -799,16 +804,11 @@ details > .stack {
   grid-column: 1;
   grid-row: 1;
 }
-.settings-fields .field > small {
-  grid-column: 1;
-  grid-row: 2;
-  margin-top: var(--space-1);
-}
 .settings-fields .field > input,
 .settings-fields .field > select,
 .settings-fields .field > .path-input {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
 }
 .path-input {
   display: flex;
@@ -830,7 +830,9 @@ details > .stack {
   background: var(--panel);
 }
 .setting-toggle strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: 13px;
   font-weight: 500;
 }
@@ -1525,31 +1527,126 @@ details > .field {
   }
 }
 
-.profile-mode {
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.hint-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: help;
+  flex-shrink: 0;
+}
+.hint-content {
+  z-index: 1000;
+  max-width: 320px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.6;
+  box-shadow: 0 4px 16px #00000018;
+}
+.hint-arrow {
+  fill: var(--line);
+}
+.connection-options {
   border: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  margin: 0;
+  display: flex;
+  gap: var(--space-2);
 }
-.profile-mode legend {
-  margin-bottom: 8px;
-  font-weight: 600;
+.connection-options legend {
+  margin-bottom: var(--space-2);
+  font-weight: 500;
 }
-.profile-mode label {
+.connection-options label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
-.profile-mode label.selected {
+.connection-options label[data-selected="true"] {
+  color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-.profile-mode small {
-  grid-column: 2;
-  color: var(--muted);
+.connection-options:disabled label {
+  cursor: default;
+  opacity: 0.55;
+}
+.profile-editor-actions .danger {
+  margin-right: auto;
+}
+.profile-summary {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.compact-row[data-active="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.profile-menu {
+  z-index: 100;
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+  box-shadow: 0 8px 28px #00000022;
+}
+.profile-menu-list {
+  max-height: 280px;
+  overflow: auto;
+}
+.profile-menu button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-control);
+  padding: 8px 10px;
+  background: none;
+  text-align: left;
+}
+.profile-menu button:hover {
+  background: var(--hover);
+}
+.profile-menu-item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-menu-item[data-active="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.profile-menu .profile-menu-settings {
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  margin-top: 4px;
+}
+.setting-toggle select {
+  width: 200px;
+  flex-shrink: 0;
+}
+.connection-state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
 }

@@ -99,9 +99,6 @@ export function MaskEditor({
     onChange(rules.map((r, n) => (n === i ? { ...r, ...v } : r)));
   return (
     <div className="form-stack">
-      <p className="muted">
-        按字段名或模式添加脱敏规则。规则按保存顺序处理，实例规则先于实体追加规则；禁止访问会在执行前拒绝。
-      </p>
       <details
         className="mask-rules"
         open={rulesOpen}
@@ -192,7 +189,6 @@ export function MaskEditor({
       </Button>
       <div className="panel rule-preview">
         <h3>规则预览</h3>
-        <p className="muted">填写来源字段，只预览匹配该字段的规则，不执行 SQL。</p>
         <div className="form-grid preview-source">
           <Field label="Schema">
             <input
@@ -238,7 +234,7 @@ export function MaskEditor({
             }
           }}
         >
-          使用 Server 规则预览
+          使用 MCP Server 规则预览
         </Button>
         {preview !== undefined && <pre>{JSON.stringify(preview)}</pre>}
       </div>

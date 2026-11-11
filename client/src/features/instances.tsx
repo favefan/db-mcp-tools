@@ -52,7 +52,6 @@ export function Instances({ drivers }: { drivers: Record<string, boolean> }) {
       title="数据库实例"
       icon={Database}
       count={query.data?.length ?? 0}
-      description="统一连接、访问范围和强制脱敏规则。"
       actions={
         <>
           <Button variant="primary" onClick={create}>
@@ -210,7 +209,7 @@ function InstanceForm({
                   {Object.entries(names).map(([key, name]) => (
                     <option value={key} key={key}>
                       {name}
-                      {drivers[key] ? "" : "（此 Server 未编译）"}
+                      {drivers[key] ? "" : "（此 MCP Server 未编译）"}
                     </option>
                   ))}
                 </select>
@@ -319,7 +318,6 @@ function InstanceForm({
                 </Field>
               )}
             </div>
-            <p className="muted">在范围页读取远端对象，选择许可的数据库、模式、表或字段。</p>
             <div className="actions">
               <Button disabled={test.isPending} onClick={() => test.mutate()}>
                 <PlugZap size={16} />
@@ -362,7 +360,6 @@ function InstanceForm({
             />
             启用此实例
           </label>
-          <p className="muted">停用后立即拒绝后续访问，保留策略与历史记录。</p>
           <Field label="实例 ID">
             <input readOnly value={value.id || "保存后生成"} />
           </Field>
@@ -388,7 +385,6 @@ function InstanceEntities({ id }: { id: string }) {
   });
   return (
     <div className="form-stack">
-      <p className="muted">已绑定当前实例的实体。可在访问实体页面调整授权。</p>
       {q.error ? (
         <Empty title="实体读取失败">{errorMessage(q.error)}</Empty>
       ) : q.isPending && id ? (

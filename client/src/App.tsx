@@ -10,10 +10,8 @@ import {
   ClipboardCheck,
   ScrollText,
   Settings2,
-  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
-  Circle,
   ArrowLeft,
   HardDrive,
   Cable,
@@ -40,9 +38,9 @@ import { Settings, type SettingsSection } from "./features/settings";
 import { Page } from "./components/page-header";
 import { hasDesktop, isPreview, invoke } from "./lib/desktop";
 import { CloseDialog } from "./components/close-dialog";
-import { Button, Notice } from "./components/ui";
+import { Button } from "./components/ui";
 import { serverCompatibility } from "./lib/server-version";
-import { Profiles } from "./features/profiles";
+import { ProfileMenu } from "./components/profile-menu";
 
 const navigation = [
   { name: "数据库实例", icon: Database },
@@ -52,7 +50,7 @@ const navigation = [
 ];
 const settingsNavigation: { id: SettingsSection; name: string; icon: typeof Settings2 }[] = [
   { id: "general", name: "通用", icon: Settings2 },
-  { id: "server", name: "Server", icon: HardDrive },
+  { id: "server", name: "配置与 MCP Server", icon: HardDrive },
   { id: "agents", name: "Agent 接入", icon: Cable },
   { id: "templates", name: "实例模板", icon: LayoutTemplate },
   { id: "data", name: "数据管理", icon: Archive },
@@ -68,32 +66,34 @@ export default function App() {
   const [theme, setTheme] = useState("system");
   const [notifications, setNotifications] = useState(false);
   const [session, setSession] = useState<SessionView>();
-  const [managingProfiles, setManagingProfiles] = useState(false);
   const generation = useRef(-1);
   const wasConnected = useRef(false);
+  const settledProfile = useRef<string | null>(null);
   const importedLegacy = useRef(false);
   const seen = useRef(new Set<string>());
   const bootstrapped = useRef(false);
   const [upgrading, setUpgrading] = useState("");
-  const [upgradeError, setUpgradeError] = useState("");
   const client = useQueryClient();
   const applySession = useCallback(
     (next: SessionView) => {
       if (next.generation < generation.current) return;
       if (next.generation !== generation.current || next.connected !== wasConnected.current) {
-        setUpgradeError("");
         client.clear();
         seen.current.clear();
         setApprovalTarget(undefined);
-        if (!next.busy) setPage(next.connected ? 0 : 4);
+        if (!next.busy) {
+          if (!next.connected) setPage(4);
+          else if (settledProfile.current !== (next.current?.id ?? null)) setPage(0);
+        }
       }
+      if (!next.busy) settledProfile.current = next.current?.id ?? null;
       wasConnected.current = next.connected;
       generation.current = next.generation;
       setSession(next);
       setProfile(next.current);
       setTheme(next.preferences.theme);
       setNotifications(next.preferences.notifications);
-      setUpgrading(next.busy ? "当前环境" : "");
+      setUpgrading(next.busy ? "当前配置" : "");
       client.setQueryData(["desktop-preferences"], next.preferences);
     },
     [client],
@@ -309,61 +309,36 @@ export default function App() {
                 {!collapsed && <span>设置</span>}
               </button>
             )}
-            <button
-              className="server-profile"
-              onClick={() => setManagingProfiles(true)}
-              title="当前会话 · 切换环境"
-            >
-              <Circle size={9} fill="currentColor" className={connected ? "online" : "offline"} />
-              {!collapsed && (
-                <>
-                  <div>
-                    <strong>{profile ? `当前环境 · ${profile.name}` : "选择当前环境"}</strong>
-                    <small>
-                      {!profile
-                        ? "尚未选择连接"
-                        : profile.mode === "local"
-                          ? "本机托管"
-                          : "已有 Server"}{" "}
-                      ·{" "}
-                      {session?.busy
-                        ? "切换中"
-                        : session?.connected && health.isPending
-                          ? "连接中"
-                          : connected
-                            ? "已连接"
-                            : "未连接"}
-                    </small>
-                  </div>
-                  <ChevronRight size={14} />
-                </>
-              )}
-            </button>
+            <ProfileMenu
+              session={session}
+              connected={connected}
+              collapsed={collapsed}
+              onChange={applySession}
+              onSettings={() => openSettings("server")}
+            />
           </div>
         </aside>
         <main ref={main}>
           {upgrading && page !== 4 && (
-            <Page title="准备当前环境" icon={HardDrive}>
-              <Notice>正在处理当前环境的连接与本机运行状态…</Notice>
+            <Page title="准备当前配置" icon={HardDrive}>
+              <p className="muted">正在连接…</p>
             </Page>
           )}
           {page !== 4 && !ready && !upgrading && (
             <Page title={navigation[page].name} icon={navigation[page].icon}>
-              <Notice
-                action={
-                  <Button variant="text" onClick={() => openSettings("server")}>
-                    前往设置 <ChevronRight size={14} />
-                  </Button>
-                }
-              >
-                {compatibility ||
-                  session?.error ||
-                  (session?.connected && health.isPending
-                    ? "正在读取当前 Server 状态…"
-                    : profile
-                      ? "Server 连接已断开，请检查运行状态。"
-                      : "先连接 Server，开始管理数据库访问。")}
-              </Notice>
+              <div className="connection-state">
+                <p>
+                  {" "}
+                  {compatibility ||
+                    session?.error ||
+                    (session?.connected && health.isPending
+                      ? "正在读取当前 MCP Server 状态…"
+                      : profile
+                        ? "MCP Server 连接已断开，请检查运行状态。"
+                        : "先连接 MCP Server，开始管理数据库访问。")}
+                </p>
+                <Button onClick={() => openSettings("server")}>配置与 MCP Server</Button>
+              </div>
             </Page>
           )}
           {page === 0 && ready && <Instances drivers={health.data?.drivers ?? {}} />}
@@ -390,11 +365,10 @@ export default function App() {
               profile={profile}
               health={connected ? health.data : undefined}
               upgrading={!!upgrading}
-              upgradeError={upgradeError}
               connectionError={session?.error}
-              onUpgradeErrorChange={setUpgradeError}
               onConnect={() => void refreshSession()}
-              onManageProfiles={() => setManagingProfiles(true)}
+              session={session}
+              onSessionChange={applySession}
               theme={theme}
               setTheme={(value) => void saveAppearance(value, notifications)}
               notifications={notifications}
@@ -405,17 +379,7 @@ export default function App() {
           )}
         </main>
       </div>
-      {managingProfiles && session && (
-        <Profiles
-          session={session}
-          onChange={applySession}
-          onClose={() => setManagingProfiles(false)}
-        />
-      )}
-      <CloseDialog
-        followClient={profile?.follow_client ?? false}
-        generation={session?.generation}
-      />
+      <CloseDialog generation={session?.generation} />
       <Toaster
         richColors
         position="bottom-right"

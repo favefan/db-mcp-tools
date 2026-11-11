@@ -20,11 +20,6 @@ export function DiagnosticExport({ details = false }: { details?: boolean }) {
       {details && (
         <>
           <h2>诊断日志</h2>
-          <p className="muted">
-            导出客户端、Bridge 和 Server
-            的运行记录、版本与审计摘要。连接不可用时仍可导出本地日志，包内会注明缺失项。
-          </p>
-          <p className="muted">自动轮转，单文件 2 MiB；不记录凭据、原始 SQL、参数或查询结果。</p>
           {info.data && (
             <p className="muted">
               本机日志：<code>{info.data.desktop_dir}</code>
@@ -45,8 +40,8 @@ export function DiagnosticExport({ details = false }: { details?: boolean }) {
             if (result)
               toast.success(
                 result.server_status === "collected"
-                  ? "诊断包已导出，包含 Server 日志"
-                  : "本地诊断包已导出；Server 未连接或不支持采集，缺失项已注明",
+                  ? "诊断包已导出，包含 MCP Server 日志"
+                  : "本地诊断包已导出；MCP Server 未连接或不支持采集，缺失项已注明",
                 { description: result.path },
               );
           } catch (error) {

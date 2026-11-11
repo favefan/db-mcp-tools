@@ -43,7 +43,7 @@ const guarded = new Set([
 ]);
 export class SessionChangedError extends Error {
   constructor() {
-    super("环境已切换，请在当前环境重新操作");
+    super("配置已切换，请在当前配置重新操作");
   }
 }
 export async function invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -82,5 +82,5 @@ export async function invoke<T>(command: string, args?: Record<string, unknown>)
       throw new SessionChangedError();
     return result as T;
   }
-  throw new Error("请打开桌面客户端连接 Server");
+  throw new Error("请打开桌面客户端连接 MCP Server");
 }

@@ -50,7 +50,7 @@ fn read_profile(state: &Desktop) -> Result<Profile, String> {
         .map_err(|e| e.to_string())?
         .profile
         .clone()
-        .ok_or("请先选择环境".into())
+        .ok_or("请先选择配置".into())
 }
 fn validate_endpoint(endpoint: &str) -> Result<(), String> {
     let url = reqwest::Url::parse(endpoint).map_err(|_| "Admin 地址无效")?;
@@ -64,7 +64,7 @@ fn validate_endpoint(endpoint: &str) -> Result<(), String> {
         || url.query().is_some()
         || url.fragment().is_some()
     {
-        return Err("Admin 请使用回环地址；远程 Server 通过 SSH 隧道连接".into());
+        return Err("Admin 请使用回环地址；远程 MCP Server 通过 SSH 隧道连接".into());
     }
     Ok(())
 }
@@ -108,7 +108,7 @@ async fn request(
     let response = req.send().await.map_err(|error| {
         let kind=if error.is_timeout(){"timeout"}else if error.is_connect(){"connect"}else{"transport"};
         diagnostics::event("admin.transport_failed",serde_json::json!({"trace_id":trace,"route":route,"error_kind":kind,"duration_ms":started.elapsed().as_millis()}));
-        format!("无法连接 Server，请检查地址及运行状态（诊断 ID：{trace}）")
+        format!("无法连接 MCP Server，请检查地址及运行状态（诊断 ID：{trace}）")
     })?;
     let status = response.status();
     let json_response = response
@@ -122,19 +122,23 @@ async fn request(
             serde_json::json!({"trace_id":trace,"route":route,"status":status.as_u16()}),
         );
         return Err(format!(
-            "Server 不支持当前操作，请升级 Server 后重试（HTTP {}，诊断 ID：{trace}）",
+            "MCP Server 不支持当前操作，请升级 MCP Server 后重试（HTTP {}，诊断 ID：{trace}）",
             status.as_u16()
         ));
     }
     let mut response = response;
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|_| "Server 响应读取失败")? {
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|_| "MCP Server 响应读取失败")?
+    {
         if bytes.len() + chunk.len() > 20 << 20 {
             diagnostics::event(
                 "admin.response_too_large",
                 serde_json::json!({"trace_id":trace,"route":route}),
             );
-            return Err("Server 响应超过 20 MiB 限制".into());
+            return Err("MCP Server 响应超过 20 MiB 限制".into());
         };
         bytes.extend_from_slice(&chunk);
     }
@@ -143,7 +147,7 @@ async fn request(
             "admin.invalid_response",
             serde_json::json!({"trace_id":trace,"route":route,"status":status.as_u16()}),
         );
-        format!("Server 响应无效或 API 不兼容（诊断 ID：{trace}）")
+        format!("MCP Server 响应无效或 API 不兼容（诊断 ID：{trace}）")
     })?;
     diagnostics::event(
         "admin.complete",
@@ -180,7 +184,7 @@ async fn connect_profile(
     session: profiles::Stamp,
 ) -> Result<Value, String> {
     if profile.id != session.profile_id {
-        return Err("连接目标不是当前环境".into());
+        return Err("连接目标不是当前配置".into());
     }
     profiles::connect_current(&app, &state, session, token).await
 }
@@ -196,10 +200,10 @@ async fn admin_request(
     let (profile, token) = {
         let s = state.session.lock().map_err(|e| e.to_string())?;
         if !s.connected {
-            return Err("当前环境尚未连接".into());
+            return Err("当前配置尚未连接".into());
         }
         (
-            s.profile.clone().ok_or("未选择环境")?,
+            s.profile.clone().ok_or("未选择配置")?,
             s.token.clone().ok_or("管理员凭据不可用")?,
         )
     };
@@ -237,52 +241,41 @@ async fn local_command(
         || (selected.executable != executable && !alternate_upgrade)
         || selected.data_dir != data_dir
     {
-        return Err("本机操作目标必须与当前环境一致；请先保存环境配置".into());
+        return Err("本机操作目标必须与当前配置一致；请先保存配置".into());
     }
-    let before = if matches!(
-        action.as_str(),
-        "start"
-            | "stop"
-            | "restart"
-            | "upgrade"
-            | "service-start"
-            | "service-stop"
-            | "service-restart"
-            | "service-install"
-            | "service-migrate"
-    ) {
+    if matches!(action.as_str(), "start" | "restart") {
+        profiles::require_managed_program(&selected)?;
+    }
+    let before = if matches!(action.as_str(), "start" | "stop" | "restart" | "upgrade") {
         Some(profiles::call(&selected, &["run", "status"]).await?)
     } else {
         None
     };
     if let Some(status) = &before {
         profiles::check_identity(&selected, status)?;
+        if matches!(action.as_str(), "start" | "restart") && status["running"] == true {
+            profiles::require_running_version(status)?;
+        }
     }
-    if selected.follow_client {
-        if matches!(action.as_str(), "start" | "restart" | "upgrade")
-            && profiles::call(&selected, &["service", "status"]).await?["installed"] != false
-        {
-            return Err("系统服务或服务状态未知，不能使用随客户端启停".into());
+    if matches!(
+        action.as_str(),
+        "start" | "stop" | "restart" | "upgrade" | "deploy" | "rollback-program"
+    ) {
+        let native = profiles::call(&selected, &["service", "status"]).await?;
+        if native["installed"] != false {
+            return Err("系统服务请使用已有 MCP Server 通过 HTTP 连接".into());
         }
-        if matches!(
-            action.as_str(),
-            "service-install" | "service-migrate" | "service-start" | "service-restart"
-        ) {
-            return Err("请先关闭随客户端启停，再使用系统服务".into());
+    }
+    let prepare_runtime = matches!(action.as_str(), "start" | "restart")
+        && !std::path::Path::new(&data_dir)
+            .join("runtime/current.json")
+            .exists();
+    if prepare_runtime {
+        if action == "restart" {
+            profiles::call(&selected, &["run", "stop"]).await?;
         }
-        if matches!(action.as_str(), "start" | "restart" | "upgrade")
-            && before.as_ref().is_some_and(|s| s["running"] == true)
-        {
-            let owned = state
-                .session
-                .lock()
-                .map_err(|e| e.to_string())?
-                .owned
-                .clone();
-            if !owned.is_some_and(|p| p.matches(&selected, before.as_ref().unwrap())) {
-                return Err("该 Server 由外部启动，请先手动停止或关闭随客户端启停".into());
-            }
-        }
+        profiles::call(&selected, &["init", "--allocate-ports"]).await?;
+        profiles::call(&selected, &["runtime", "prepare"]).await?;
     }
     let saved_action = action.clone();
     let trace = diagnostics::id();
@@ -293,7 +286,7 @@ async fn local_command(
     if executable.is_empty() || data_dir.is_empty() {
         return Err("请选择已安装的 dbmcp 程序和数据目录".into());
     }
-    let mut args = match action.as_str() {
+    let args = match action.as_str() {
         "init" => {
             if std::path::Path::new(&data_dir)
                 .join("deployment.toml")
@@ -304,56 +297,25 @@ async fn local_command(
                 vec!["init", "--allocate-ports"]
             }
         }
-        "start" => vec!["runtime", "upgrade", "--start"],
+        "start" => vec!["run", "start"],
         "stop" => vec!["run", "stop"],
-        "restart" => vec!["run", "restart"],
+        "restart" => {
+            if prepare_runtime {
+                vec!["run", "start"]
+            } else {
+                vec!["run", "restart"]
+            }
+        }
         "status" => vec!["run", "status"],
-        "service-status" => vec!["service", "status"],
         "upgrade" => vec!["runtime", "upgrade"],
         "deploy" => vec!["runtime", "deploy"],
-        "service-install" => vec!["runtime", "upgrade", "--service", "--start"],
-        "service-migrate" => vec!["runtime", "migrate", "--service", "--start"],
-        "service-start" => vec!["service", "start"],
-        "service-stop" => vec!["service", "stop"],
-        "service-restart" => vec!["service", "restart"],
-        "service-uninstall" => vec!["service", "uninstall"],
         "rollback-program" => vec!["runtime", "rollback-program"],
         _ => return Err("不支持的本机操作".into()),
     };
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let mut native = false;
-        if matches!(
-            action.as_str(),
-            "start" | "stop" | "restart" | "upgrade" | "rollback-program"
-        ) {
-            let mut probe = Command::new(&executable);
-            probe
-                .arg("--data-dir")
-                .arg(&data_dir)
-                .args(["service", "status"]);
-            hide(&mut probe);
-            let out = probe.output().map_err(|e| e.to_string())?;
-            if out.status.success() {
-                native = serde_json::from_slice::<Value>(&out.stdout)
-                    .ok()
-                    .is_some_and(|v| v["installed"] == true);
-            }
-        }
-        if native {
-            args = match action.as_str() {
-                "start" => vec!["service", "start"],
-                "stop" => vec!["service", "stop"],
-                "restart" => vec!["service", "restart"],
-                _ => args,
-            };
-        }
         let mut cmd = Command::new(executable);
         cmd.env("DBMCP_TRACE_ID", &trace);
         cmd.arg("--data-dir").arg(data_dir);
-        if cfg!(windows) && (native || action.starts_with("service-") && action != "service-status")
-        {
-            cmd.arg("--elevate");
-        }
         cmd.args(args);
         hide(&mut cmd);
         let out = cmd.output().map_err(|e| e.to_string())?;
@@ -370,14 +332,7 @@ async fn local_command(
     .map_err(|e| e.to_string())?;
     diagnostics::result("local.complete", &result);
     if let Ok(value) = &result {
-        profiles::local_result(
-            &app,
-            &state,
-            &selected,
-            &saved_action,
-            before.as_ref(),
-            value,
-        )?;
+        profiles::local_result(&app, &state, &selected, &saved_action, value)?;
     }
     result
 }
@@ -408,8 +363,9 @@ async fn local_defaults(
         };
         let version = program_version(&path)?;
         let bundled_version = bundled.as_ref().map(|path| program_version(path)).transpose()?;
+        let deployed_version = data_dir.as_ref().and_then(|dir| std::fs::read(std::path::Path::new(dir).join("runtime/current.json")).ok()).and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok()).and_then(|value| value["version"].as_str().map(str::to_owned));
         let managed = data_dir.is_some_and(|dir| managed_launcher(&path, &PathBuf::from(dir)));
-        Ok(serde_json::json!({"executable":path,"managed_runtime":managed,"bundled":bundled.is_some(),"bundled_executable":bundled,"bundled_build":bundled_version,"platform":std::env::consts::OS,"build":version}))
+        Ok(serde_json::json!({"executable":path,"managed_runtime":managed,"deployed_version":deployed_version,"bundled":bundled.is_some(),"bundled_executable":bundled,"bundled_build":bundled_version,"platform":std::env::consts::OS,"build":version}))
     }).await.map_err(|e| e.to_string())?
 }
 
@@ -497,7 +453,7 @@ async fn local_restore(
         || p.executable != executable
         || p.data_dir != data_dir
     {
-        return Err("恢复目标必须为当前本机环境".into());
+        return Err("恢复目标必须为当前本机配置".into());
     }
     if executable.is_empty() || data_dir.is_empty() || backup.is_empty() {
         return Err("请选择本机程序、数据目录和备份目录".into());
@@ -517,7 +473,7 @@ async fn local_restore(
     })
     .await
     .map_err(|e| e.to_string())??;
-    profiles::local_result(&app, &state, &p, "restore", None, &result)?;
+    profiles::local_result(&app, &state, &p, "restore", &result)?;
     Ok(result)
 }
 

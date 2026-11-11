@@ -28,7 +28,7 @@ func TestRestoreKeepsSecretsAndRequiresStoppedServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = run.Restore(ctx, dir, backup); err == nil {
-		t.Fatal("restore acquired a live Server directory")
+		t.Fatal("restore acquired a live MCP Server directory")
 	}
 	i.Name = "changed"
 	if _, err = s.SaveInstance(i); err != nil {

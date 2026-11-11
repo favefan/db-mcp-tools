@@ -1,0 +1,49 @@
+name: Validate Windows source
+description: Run source, contract and isolated runtime checks before packaging
+runs:
+  using: composite
+  steps:
+    - name: Format
+      shell: pwsh
+      run: pnpm format:check
+    - name: Release version guard
+      shell: pwsh
+      run: node --test scripts/release-version.test.mjs
+    - name: Frontend types
+      shell: pwsh
+      run: pnpm --dir client typecheck
+    - name: Frontend lint
+      shell: pwsh
+      run: pnpm --dir client lint
+    - name: Frontend build
+      shell: pwsh
+      run: pnpm --dir client build
+    - name: Go tests (container tests skip without explicit opt-in)
+      shell: pwsh
+      run: go -C server test ./...
+    - name: Go vet
+      shell: pwsh
+      run: go -C server vet ./...
+    - name: Rust tests
+      shell: pwsh
+      run: cargo test --manifest-path client/src-tauri/Cargo.toml --locked
+    - name: Rust clippy
+      shell: pwsh
+      run: cargo clippy --manifest-path client/src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+    - name: Regenerate API contract
+      shell: pwsh
+      run: pnpm generate:api
+    - name: Check generated contract and locks
+      shell: pwsh
+      run: git diff --exit-code -- docs/openapi.json client/src/lib/contract.ts pnpm-lock.yaml server/go.mod server/go.sum client/src-tauri/Cargo.lock
+    - name: Build development MCP Server
+      shell: pwsh
+      run: go -C server build -o bin/dbmcp.exe ./cmd/dbmcp
+    - name: Isolated configuration integration
+      shell: pwsh
+      env:
+        DBMCP_TEST_SERVER: ${{ github.workspace }}/server/bin/dbmcp.exe
+      run: cargo test --manifest-path client/src-tauri/Cargo.toml --locked real_server_install_replace_remove_and_failed_save_revoke -- --ignored
+    - name: Isolated runtime smoke
+      shell: pwsh
+      run: pnpm smoke:runtime

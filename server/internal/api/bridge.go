@@ -58,14 +58,14 @@ func Bridge(ctx context.Context, path string, wait time.Duration) error {
 	session, err := client.Connect(ctx, transport, nil)
 	if err != nil {
 		diagnostics.Event(ctx, slog.LevelError, "bridge.connect_failed", "error", diagnostics.ErrorInfo(err))
-		return errors.New("cannot connect to dbmcp Server; start or reconnect the Server")
+		return errors.New("cannot connect to dbmcp MCP Server; start or reconnect the MCP Server")
 	}
 	defer session.Close()
 	s := mcp.NewServer(&mcp.Implementation{Name: "dbmcp-bridge", Version: model.Version}, nil)
 	listed, err := session.ListTools(ctx, &mcp.ListToolsParams{})
 	if err != nil {
 		diagnostics.Event(ctx, slog.LevelError, "bridge.discovery_failed", "error", diagnostics.ErrorInfo(err))
-		return errors.New("cannot discover Server tools")
+		return errors.New("cannot discover MCP Server tools")
 	}
 	for _, tool := range listed.Tools {
 		tool := tool
