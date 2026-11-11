@@ -1,0 +1,19 @@
+{
+  "endOfLine": "lf",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "proseWrap": "preserve",
+  "plugins": ["prettier-plugin-sql"],
+  "overrides": [
+    {
+      "files": "server/migrations/**/*.sql",
+      "options": {
+        "language": "sqlite",
+        "keywordCase": "upper"
+      }
+    }
+  ]
+}

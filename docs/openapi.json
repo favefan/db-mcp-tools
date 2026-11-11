@@ -1,0 +1,5887 @@
+{
+  "components": {
+    "schemas": {
+      "ApprovalRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "tables": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "column": {
+                  "type": "string"
+                }
+              },
+              "required": ["schema", "table", "column"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["id", "operation", "tables"],
+        "additionalProperties": false
+      },
+      "Audit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "time": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "time",
+          "entity_id",
+          "instance_id",
+          "request_id",
+          "action",
+          "decision",
+          "detail",
+          "duration_ms"
+        ],
+        "additionalProperties": false
+      },
+      "AuditDetail": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "time": {
+                "type": "string"
+              },
+              "entity_id": {
+                "type": "string"
+              },
+              "instance_id": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "duration_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "time",
+              "entity_id",
+              "instance_id",
+              "request_id",
+              "action",
+              "decision",
+              "detail",
+              "duration_ms"
+            ],
+            "additionalProperties": false
+          },
+          "request": {
+            "type": ["null", "object"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "client_request_id": {
+                "type": "string"
+              },
+              "entity_id": {
+                "type": "string"
+              },
+              "entity_name": {
+                "type": "string"
+              },
+              "client": {
+                "type": "string"
+              },
+              "instance_id": {
+                "type": "string"
+              },
+              "instance_name": {
+                "type": "string"
+              },
+              "database": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "trace_id": {
+                "type": "string"
+              },
+              "sql": {
+                "type": "string"
+              },
+              "parameter_json": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "operation": {
+                "type": "string"
+              },
+              "tables": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "table": {
+                      "type": "string"
+                    },
+                    "column": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["schema", "table", "column"],
+                  "additionalProperties": false
+                }
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "finished_at": {
+                "type": "string"
+              },
+              "duration_ms": {
+                "type": "integer"
+              },
+              "result": {
+                "type": ["null", "object"],
+                "properties": {
+                  "columns": {
+                    "type": ["null", "array"],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "row_count": {
+                    "type": "integer"
+                  },
+                  "affected": {
+                    "type": "integer"
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "masks": {
+                    "type": ["null", "array"],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "layer": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        },
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["layer", "id", "target", "mode"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["columns", "row_count", "affected", "truncated", "reason", "masks"],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "tool",
+              "client_request_id",
+              "entity_id",
+              "entity_name",
+              "client",
+              "instance_id",
+              "instance_name",
+              "database",
+              "source",
+              "trace_id",
+              "sql",
+              "parameter_json",
+              "status",
+              "operation",
+              "tables",
+              "created_at",
+              "duration_ms"
+            ],
+            "additionalProperties": false
+          },
+          "payload_state": {
+            "type": "string"
+          },
+          "events": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "time": {
+                  "type": "string"
+                },
+                "entity_id": {
+                  "type": "string"
+                },
+                "instance_id": {
+                  "type": "string"
+                },
+                "request_id": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "decision": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "duration_ms": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "time",
+                "entity_id",
+                "instance_id",
+                "request_id",
+                "action",
+                "decision",
+                "detail",
+                "duration_ms"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "events_truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": ["event", "payload_state", "events", "events_truncated"],
+        "additionalProperties": false
+      },
+      "BackupInfo": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "integer"
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["path", "version", "schema", "server_id", "created_at", "files"],
+        "additionalProperties": false
+      },
+      "Binding": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "resources": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "operations": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cidrs": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "approval": {
+                "type": "string"
+              },
+              "max_rows": {
+                "type": "integer"
+              },
+              "max_bytes": {
+                "type": "integer"
+              },
+              "timeout_seconds": {
+                "type": "integer"
+              },
+              "concurrency": {
+                "type": "integer"
+              },
+              "approval_seconds": {
+                "type": "integer"
+              },
+              "masks": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "pattern": {
+                      "type": "string"
+                    },
+                    "keep_start": {
+                      "type": "integer"
+                    },
+                    "keep_end": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["id", "target", "mode"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "resources",
+              "operations",
+              "cidrs",
+              "approval",
+              "max_rows",
+              "max_bytes",
+              "timeout_seconds",
+              "concurrency",
+              "approval_seconds",
+              "masks"
+            ],
+            "additionalProperties": false
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "approval_rules": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "database": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                },
+                "tables": {
+                  "type": ["null", "array"],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "schema": {
+                        "type": "string"
+                      },
+                      "table": {
+                        "type": "string"
+                      },
+                      "column": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["schema", "table", "column"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["id", "operation", "tables"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["entity_id", "instance_id", "policy", "revision"],
+        "additionalProperties": false
+      },
+      "Catalog": {
+        "type": "object",
+        "properties": {
+          "database": {
+            "type": "string"
+          },
+          "schemas": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "columns": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "database": {
+                  "type": "string"
+                },
+                "database_resource": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "string"
+                },
+                "table_resource": {
+                  "type": "string"
+                },
+                "schema_resource": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "ordinal": {
+                  "type": "integer"
+                },
+                "srid": {
+                  "type": ["null", "integer"]
+                },
+                "spatial_type": {
+                  "type": "string"
+                },
+                "dimensions": {
+                  "type": "integer"
+                },
+                "hypertable": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "database",
+                "database_resource",
+                "resource",
+                "table_resource",
+                "schema_resource",
+                "schema",
+                "table",
+                "name",
+                "type",
+                "ordinal"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "extensions": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["database", "schemas", "columns", "extensions"],
+        "additionalProperties": false
+      },
+      "Column": {
+        "type": "object",
+        "properties": {
+          "database": {
+            "type": "string"
+          },
+          "database_resource": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "table_resource": {
+            "type": "string"
+          },
+          "schema_resource": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "integer"
+          },
+          "srid": {
+            "type": ["null", "integer"]
+          },
+          "spatial_type": {
+            "type": "string"
+          },
+          "dimensions": {
+            "type": "integer"
+          },
+          "hypertable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "database",
+          "database_resource",
+          "resource",
+          "table_resource",
+          "schema_resource",
+          "schema",
+          "table",
+          "name",
+          "type",
+          "ordinal"
+        ],
+        "additionalProperties": false
+      },
+      "Configuration": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "instances": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "driver": {
+                  "type": "string"
+                },
+                "connection": {
+                  "type": "object",
+                  "properties": {
+                    "host": {
+                      "type": "string"
+                    },
+                    "port": {
+                      "type": "integer"
+                    },
+                    "database": {
+                      "type": "string"
+                    },
+                    "database_mode": {
+                      "type": "string"
+                    },
+                    "databases": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "schema": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "password": {
+                      "type": "string"
+                    },
+                    "tls": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["host", "port", "database", "schema", "username", "tls"],
+                  "additionalProperties": false
+                },
+                "password_set": {
+                  "type": "boolean"
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "policy": {
+                  "type": "object",
+                  "properties": {
+                    "resources": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "operations": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "cidrs": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "approval": {
+                      "type": "string"
+                    },
+                    "max_rows": {
+                      "type": "integer"
+                    },
+                    "max_bytes": {
+                      "type": "integer"
+                    },
+                    "timeout_seconds": {
+                      "type": "integer"
+                    },
+                    "concurrency": {
+                      "type": "integer"
+                    },
+                    "approval_seconds": {
+                      "type": "integer"
+                    },
+                    "masks": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "target": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "pattern": {
+                            "type": "string"
+                          },
+                          "keep_start": {
+                            "type": "integer"
+                          },
+                          "keep_end": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["id", "target", "mode"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "resources",
+                    "operations",
+                    "cidrs",
+                    "approval",
+                    "max_rows",
+                    "max_bytes",
+                    "timeout_seconds",
+                    "concurrency",
+                    "approval_seconds",
+                    "masks"
+                  ],
+                  "additionalProperties": false
+                },
+                "revision": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "driver",
+                "connection",
+                "password_set",
+                "enabled",
+                "policy",
+                "revision"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "entities": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "revision": {
+                  "type": "integer"
+                },
+                "last_seen": {
+                  "type": "string"
+                },
+                "last_source": {
+                  "type": "string"
+                },
+                "client": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "name", "notes", "enabled", "revision"],
+              "additionalProperties": false
+            }
+          },
+          "bindings": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity_id": {
+                  "type": "string"
+                },
+                "instance_id": {
+                  "type": "string"
+                },
+                "policy": {
+                  "type": "object",
+                  "properties": {
+                    "resources": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "operations": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "cidrs": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "approval": {
+                      "type": "string"
+                    },
+                    "max_rows": {
+                      "type": "integer"
+                    },
+                    "max_bytes": {
+                      "type": "integer"
+                    },
+                    "timeout_seconds": {
+                      "type": "integer"
+                    },
+                    "concurrency": {
+                      "type": "integer"
+                    },
+                    "approval_seconds": {
+                      "type": "integer"
+                    },
+                    "masks": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "target": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "pattern": {
+                            "type": "string"
+                          },
+                          "keep_start": {
+                            "type": "integer"
+                          },
+                          "keep_end": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["id", "target", "mode"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "resources",
+                    "operations",
+                    "cidrs",
+                    "approval",
+                    "max_rows",
+                    "max_bytes",
+                    "timeout_seconds",
+                    "concurrency",
+                    "approval_seconds",
+                    "masks"
+                  ],
+                  "additionalProperties": false
+                },
+                "revision": {
+                  "type": "integer"
+                },
+                "approval_rules": {
+                  "type": ["null", "array"],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "database": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string"
+                      },
+                      "tables": {
+                        "type": ["null", "array"],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "schema": {
+                              "type": "string"
+                            },
+                            "table": {
+                              "type": "string"
+                            },
+                            "column": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["schema", "table", "column"],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": ["id", "operation", "tables"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["entity_id", "instance_id", "policy", "revision"],
+              "additionalProperties": false
+            }
+          },
+          "templates": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "policy": {
+                  "type": "object",
+                  "properties": {
+                    "resources": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "operations": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "cidrs": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "approval": {
+                      "type": "string"
+                    },
+                    "max_rows": {
+                      "type": "integer"
+                    },
+                    "max_bytes": {
+                      "type": "integer"
+                    },
+                    "timeout_seconds": {
+                      "type": "integer"
+                    },
+                    "concurrency": {
+                      "type": "integer"
+                    },
+                    "approval_seconds": {
+                      "type": "integer"
+                    },
+                    "masks": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "target": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "pattern": {
+                            "type": "string"
+                          },
+                          "keep_start": {
+                            "type": "integer"
+                          },
+                          "keep_end": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["id", "target", "mode"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "resources",
+                    "operations",
+                    "cidrs",
+                    "approval",
+                    "max_rows",
+                    "max_bytes",
+                    "timeout_seconds",
+                    "concurrency",
+                    "approval_seconds",
+                    "masks"
+                  ],
+                  "additionalProperties": false
+                },
+                "revision": {
+                  "type": "integer"
+                }
+              },
+              "required": ["id", "name", "policy", "revision"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["version", "instances", "entities", "bindings", "templates"],
+        "additionalProperties": false
+      },
+      "Connection": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "database": {
+            "type": "string"
+          },
+          "database_mode": {
+            "type": "string"
+          },
+          "databases": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "schema": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "tls": {
+            "type": "string"
+          }
+        },
+        "required": ["host", "port", "database", "schema", "username", "tls"],
+        "additionalProperties": false
+      },
+      "Credential": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "entity_id", "prefix", "revoked"],
+        "additionalProperties": false
+      },
+      "Effective": {
+        "type": "object",
+        "properties": {
+          "instance_policy": {
+            "type": "object",
+            "properties": {
+              "resources": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "operations": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cidrs": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "approval": {
+                "type": "string"
+              },
+              "max_rows": {
+                "type": "integer"
+              },
+              "max_bytes": {
+                "type": "integer"
+              },
+              "timeout_seconds": {
+                "type": "integer"
+              },
+              "concurrency": {
+                "type": "integer"
+              },
+              "approval_seconds": {
+                "type": "integer"
+              },
+              "masks": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "pattern": {
+                      "type": "string"
+                    },
+                    "keep_start": {
+                      "type": "integer"
+                    },
+                    "keep_end": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["id", "target", "mode"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "resources",
+              "operations",
+              "cidrs",
+              "approval",
+              "max_rows",
+              "max_bytes",
+              "timeout_seconds",
+              "concurrency",
+              "approval_seconds",
+              "masks"
+            ],
+            "additionalProperties": false
+          },
+          "binding": {
+            "type": "object",
+            "properties": {
+              "entity_id": {
+                "type": "string"
+              },
+              "instance_id": {
+                "type": "string"
+              },
+              "policy": {
+                "type": "object",
+                "properties": {
+                  "resources": {
+                    "type": ["null", "array"],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "operations": {
+                    "type": ["null", "array"],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "cidrs": {
+                    "type": ["null", "array"],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "approval": {
+                    "type": "string"
+                  },
+                  "max_rows": {
+                    "type": "integer"
+                  },
+                  "max_bytes": {
+                    "type": "integer"
+                  },
+                  "timeout_seconds": {
+                    "type": "integer"
+                  },
+                  "concurrency": {
+                    "type": "integer"
+                  },
+                  "approval_seconds": {
+                    "type": "integer"
+                  },
+                  "masks": {
+                    "type": ["null", "array"],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        },
+                        "mode": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "pattern": {
+                          "type": "string"
+                        },
+                        "keep_start": {
+                          "type": "integer"
+                        },
+                        "keep_end": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": ["id", "target", "mode"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "resources",
+                  "operations",
+                  "cidrs",
+                  "approval",
+                  "max_rows",
+                  "max_bytes",
+                  "timeout_seconds",
+                  "concurrency",
+                  "approval_seconds",
+                  "masks"
+                ],
+                "additionalProperties": false
+              },
+              "revision": {
+                "type": "integer"
+              },
+              "approval_rules": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "database": {
+                      "type": "string"
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "tables": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "string"
+                          },
+                          "table": {
+                            "type": "string"
+                          },
+                          "column": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["schema", "table", "column"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["id", "operation", "tables"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["entity_id", "instance_id", "policy", "revision"],
+            "additionalProperties": false
+          },
+          "operations": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "approval": {
+            "type": "string"
+          },
+          "max_rows": {
+            "type": "integer"
+          },
+          "max_bytes": {
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "type": "integer"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "instance_enabled": {
+            "type": "boolean"
+          },
+          "entity_enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "instance_policy",
+          "binding",
+          "operations",
+          "approval",
+          "max_rows",
+          "max_bytes",
+          "timeout_seconds",
+          "concurrency",
+          "instance_enabled",
+          "entity_enabled"
+        ],
+        "additionalProperties": false
+      },
+      "Entity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "last_seen": {
+            "type": "string"
+          },
+          "last_source": {
+            "type": "string"
+          },
+          "client": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "notes", "enabled", "revision"],
+        "additionalProperties": false
+      },
+      "Error": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["code", "message"],
+        "type": "object"
+      },
+      "ExecutionSummary": {
+        "type": "object",
+        "properties": {
+          "columns": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "row_count": {
+            "type": "integer"
+          },
+          "affected": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "masks": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "layer": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string"
+                }
+              },
+              "required": ["layer", "id", "target", "mode"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["columns", "row_count", "affected", "truncated", "reason", "masks"],
+        "additionalProperties": false
+      },
+      "Instance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string"
+          },
+          "connection": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer"
+              },
+              "database": {
+                "type": "string"
+              },
+              "database_mode": {
+                "type": "string"
+              },
+              "databases": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "schema": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "tls": {
+                "type": "string"
+              }
+            },
+            "required": ["host", "port", "database", "schema", "username", "tls"],
+            "additionalProperties": false
+          },
+          "password_set": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "resources": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "operations": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cidrs": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "approval": {
+                "type": "string"
+              },
+              "max_rows": {
+                "type": "integer"
+              },
+              "max_bytes": {
+                "type": "integer"
+              },
+              "timeout_seconds": {
+                "type": "integer"
+              },
+              "concurrency": {
+                "type": "integer"
+              },
+              "approval_seconds": {
+                "type": "integer"
+              },
+              "masks": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "pattern": {
+                      "type": "string"
+                    },
+                    "keep_start": {
+                      "type": "integer"
+                    },
+                    "keep_end": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["id", "target", "mode"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "resources",
+              "operations",
+              "cidrs",
+              "approval",
+              "max_rows",
+              "max_bytes",
+              "timeout_seconds",
+              "concurrency",
+              "approval_seconds",
+              "masks"
+            ],
+            "additionalProperties": false
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "driver",
+          "connection",
+          "password_set",
+          "enabled",
+          "policy",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "MaskMatch": {
+        "type": "object",
+        "properties": {
+          "layer": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
+        },
+        "required": ["layer", "id", "target", "mode"],
+        "additionalProperties": false
+      },
+      "MaskRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "keep_start": {
+            "type": "integer"
+          },
+          "keep_end": {
+            "type": "integer"
+          }
+        },
+        "required": ["id", "target", "mode"],
+        "additionalProperties": false
+      },
+      "Output": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sources": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "column": {
+                  "type": "string"
+                }
+              },
+              "required": ["schema", "table", "column"],
+              "additionalProperties": false
+            }
+          },
+          "derived": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "sources", "derived"],
+        "additionalProperties": false
+      },
+      "Policy": {
+        "type": "object",
+        "properties": {
+          "resources": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "operations": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "cidrs": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "approval": {
+            "type": "string"
+          },
+          "max_rows": {
+            "type": "integer"
+          },
+          "max_bytes": {
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "type": "integer"
+          },
+          "concurrency": {
+            "type": "integer"
+          },
+          "approval_seconds": {
+            "type": "integer"
+          },
+          "masks": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                },
+                "pattern": {
+                  "type": "string"
+                },
+                "keep_start": {
+                  "type": "integer"
+                },
+                "keep_end": {
+                  "type": "integer"
+                }
+              },
+              "required": ["id", "target", "mode"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "resources",
+          "operations",
+          "cidrs",
+          "approval",
+          "max_rows",
+          "max_bytes",
+          "timeout_seconds",
+          "concurrency",
+          "approval_seconds",
+          "masks"
+        ],
+        "additionalProperties": false
+      },
+      "Query": {
+        "type": "object",
+        "properties": {
+          "instance_id": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "params": {
+            "type": ["null", "array"],
+            "items": true
+          },
+          "client_request_id": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          }
+        },
+        "required": ["instance_id", "sql", "client_request_id"],
+        "additionalProperties": false
+      },
+      "Registration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "requested_at": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "prefix", "status", "created_at"],
+        "additionalProperties": false
+      },
+      "RegistrationApproval": {
+        "type": "object",
+        "properties": {
+          "bindings": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity_id": {
+                  "type": "string"
+                },
+                "instance_id": {
+                  "type": "string"
+                },
+                "policy": {
+                  "type": "object",
+                  "properties": {
+                    "resources": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "operations": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "cidrs": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "approval": {
+                      "type": "string"
+                    },
+                    "max_rows": {
+                      "type": "integer"
+                    },
+                    "max_bytes": {
+                      "type": "integer"
+                    },
+                    "timeout_seconds": {
+                      "type": "integer"
+                    },
+                    "concurrency": {
+                      "type": "integer"
+                    },
+                    "approval_seconds": {
+                      "type": "integer"
+                    },
+                    "masks": {
+                      "type": ["null", "array"],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "target": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "pattern": {
+                            "type": "string"
+                          },
+                          "keep_start": {
+                            "type": "integer"
+                          },
+                          "keep_end": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["id", "target", "mode"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "resources",
+                    "operations",
+                    "cidrs",
+                    "approval",
+                    "max_rows",
+                    "max_bytes",
+                    "timeout_seconds",
+                    "concurrency",
+                    "approval_seconds",
+                    "masks"
+                  ],
+                  "additionalProperties": false
+                },
+                "revision": {
+                  "type": "integer"
+                },
+                "approval_rules": {
+                  "type": ["null", "array"],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "database": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string"
+                      },
+                      "tables": {
+                        "type": ["null", "array"],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "schema": {
+                              "type": "string"
+                            },
+                            "table": {
+                              "type": "string"
+                            },
+                            "column": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["schema", "table", "column"],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": ["id", "operation", "tables"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["entity_id", "instance_id", "policy", "revision"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["bindings"],
+        "additionalProperties": false
+      },
+      "Request": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "client_request_id": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "tables": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "column": {
+                  "type": "string"
+                }
+              },
+              "required": ["schema", "table", "column"],
+              "additionalProperties": false
+            }
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "instance_revision": {
+            "type": "integer"
+          },
+          "binding_revision": {
+            "type": "integer"
+          },
+          "query": {
+            "type": ["null", "object"],
+            "properties": {
+              "instance_id": {
+                "type": "string"
+              },
+              "database": {
+                "type": "string"
+              },
+              "sql": {
+                "type": "string"
+              },
+              "params": {
+                "type": ["null", "array"],
+                "items": true
+              },
+              "client_request_id": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              }
+            },
+            "required": ["instance_id", "sql", "client_request_id"],
+            "additionalProperties": false
+          },
+          "result": {
+            "type": ["null", "object"],
+            "properties": {
+              "request_id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "columns": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": ["null", "array"],
+                  "items": true
+                }
+              },
+              "affected": {
+                "type": "integer"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              }
+            },
+            "required": ["request_id", "status"],
+            "additionalProperties": false
+          },
+          "parameter_json": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entity_id",
+          "credential_id",
+          "instance_id",
+          "client_request_id",
+          "digest",
+          "status",
+          "operation",
+          "tables",
+          "created_at",
+          "expires_at",
+          "source",
+          "instance_revision",
+          "binding_revision"
+        ],
+        "additionalProperties": false
+      },
+      "RequestDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "client_request_id": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "client": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "instance_name": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": "string"
+          },
+          "sql": {
+            "type": "string"
+          },
+          "parameter_json": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "tables": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "column": {
+                  "type": "string"
+                }
+              },
+              "required": ["schema", "table", "column"],
+              "additionalProperties": false
+            }
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "result": {
+            "type": ["null", "object"],
+            "properties": {
+              "columns": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "row_count": {
+                "type": "integer"
+              },
+              "affected": {
+                "type": "integer"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "masks": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "layer": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["layer", "id", "target", "mode"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["columns", "row_count", "affected", "truncated", "reason", "masks"],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "tool",
+          "client_request_id",
+          "entity_id",
+          "entity_name",
+          "client",
+          "instance_id",
+          "instance_name",
+          "database",
+          "source",
+          "trace_id",
+          "sql",
+          "parameter_json",
+          "status",
+          "operation",
+          "tables",
+          "created_at",
+          "duration_ms"
+        ],
+        "additionalProperties": false
+      },
+      "Result": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "columns": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "rows": {
+            "type": ["null", "array"],
+            "items": {
+              "type": ["null", "array"],
+              "items": true
+            }
+          },
+          "affected": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        },
+        "required": ["request_id", "status"],
+        "additionalProperties": false
+      },
+      "Source": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "column": {
+            "type": "string"
+          }
+        },
+        "required": ["schema", "table", "column"],
+        "additionalProperties": false
+      },
+      "Statement": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string"
+          },
+          "tables": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "column": {
+                  "type": "string"
+                }
+              },
+              "required": ["schema", "table", "column"],
+              "additionalProperties": false
+            }
+          },
+          "reads": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "column": {
+                  "type": "string"
+                }
+              },
+              "required": ["schema", "table", "column"],
+              "additionalProperties": false
+            }
+          },
+          "outputs": {
+            "type": ["null", "array"],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": ["null", "array"],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "schema": {
+                        "type": "string"
+                      },
+                      "table": {
+                        "type": "string"
+                      },
+                      "column": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["schema", "table", "column"],
+                    "additionalProperties": false
+                  }
+                },
+                "derived": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "sources", "derived"],
+              "additionalProperties": false
+            }
+          },
+          "returns_rows": {
+            "type": "boolean"
+          }
+        },
+        "required": ["operation", "tables", "reads", "outputs", "returns_rows"],
+        "additionalProperties": false
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "resources": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "operations": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cidrs": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "approval": {
+                "type": "string"
+              },
+              "max_rows": {
+                "type": "integer"
+              },
+              "max_bytes": {
+                "type": "integer"
+              },
+              "timeout_seconds": {
+                "type": "integer"
+              },
+              "concurrency": {
+                "type": "integer"
+              },
+              "approval_seconds": {
+                "type": "integer"
+              },
+              "masks": {
+                "type": ["null", "array"],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "pattern": {
+                      "type": "string"
+                    },
+                    "keep_start": {
+                      "type": "integer"
+                    },
+                    "keep_end": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["id", "target", "mode"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "resources",
+              "operations",
+              "cidrs",
+              "approval",
+              "max_rows",
+              "max_bytes",
+              "timeout_seconds",
+              "concurrency",
+              "approval_seconds",
+              "masks"
+            ],
+            "additionalProperties": false
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": ["id", "name", "policy", "revision"],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "adminBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "DB MCP Tools Admin API",
+    "version": "1.0.9"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/admin/v1/approvals": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Request"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/approvals/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Request"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/approvals/{id}/{decision}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "decision",
+            "required": true,
+            "schema": {
+              "enum": ["approve", "deny", "remember"],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "recorded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["recorded"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/audit-events": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instance_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decision",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Audit"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/audit-events/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditDetail"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/backups": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BackupInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["path"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/configuration": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Configuration"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/configuration/import": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/components/schemas/Configuration"
+                  },
+                  "digest": {
+                    "type": "string"
+                  }
+                },
+                "required": ["configuration", "digest"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "imported": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["imported"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/configuration/preview": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Configuration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "behavior": {
+                      "type": "string"
+                    },
+                    "bindings": {
+                      "type": "integer"
+                    },
+                    "digest": {
+                      "type": "string"
+                    },
+                    "entities": {
+                      "type": "integer"
+                    },
+                    "instances": {
+                      "type": "integer"
+                    },
+                    "templates": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "behavior",
+                    "bindings",
+                    "digest",
+                    "entities",
+                    "instances",
+                    "templates"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/credentials/{id}/revoke": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["revoked"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/credentials/{id}/rotate": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "credential": {
+                      "$ref": "#/components/schemas/Credential"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["credential", "token"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/default-policy": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Policy"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/diagnostics": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bounded diagnostic snapshot, operational logs and audit summaries; excludes credentials, SQL and row values.",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/entities": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Entity"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Entity"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/entities/{id}": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Entity"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/entities/{id}/bindings": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Binding"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/entities/{id}/bindings/{instance}": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "instance",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Binding"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Binding"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/entities/{id}/credentials": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Credential"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "expires_at": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "credential": {
+                      "$ref": "#/components/schemas/Credential"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["credential", "token"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/entities/{id}/effective/{instance}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "instance",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Effective"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/events": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "api_version": {
+                      "type": "integer"
+                    },
+                    "data_dir": {
+                      "type": "string"
+                    },
+                    "drivers": {
+                      "additionalProperties": {
+                        "type": "boolean"
+                      },
+                      "type": "object"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "server_id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "api_version",
+                    "data_dir",
+                    "drivers",
+                    "mode",
+                    "server_id",
+                    "version"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Instance"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Instance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Instance"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/databases": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Instance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/schema": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "database": {
+                    "type": "string"
+                  },
+                  "instance": {
+                    "$ref": "#/components/schemas/Instance"
+                  }
+                },
+                "required": ["database", "instance"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Catalog"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/test": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Instance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "connected": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["connected"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Instance"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Instance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Instance"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/{id}/databases": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/{id}/entities": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Entity"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/instances/{id}/schema": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "database",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Catalog"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/mask-preview": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "rules": {
+                    "items": {
+                      "$ref": "#/components/schemas/MaskRule"
+                    },
+                    "type": "array"
+                  },
+                  "source": {
+                    "$ref": "#/components/schemas/Source"
+                  },
+                  "value": {}
+                },
+                "required": ["rules", "source", "value"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "value": {}
+                  },
+                  "required": ["value"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/registrations": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Registration"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "expires_at": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "registration": {
+                      "$ref": "#/components/schemas/Registration"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["registration", "token"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/registrations/{id}/approve": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationApproval"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registration"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/registrations/{id}/deny": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "recorded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["recorded"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/registrations/{id}/revoke": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "recorded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["recorded"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/runtime/stop": {
+      "post": {
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DBMCP-Server-ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "stopping": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["stopping"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/simulate": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "credential_id": {
+                    "type": "string"
+                  },
+                  "entity_id": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "$ref": "#/components/schemas/Query"
+                  },
+                  "source": {
+                    "type": "string"
+                  }
+                },
+                "required": ["credential_id", "entity_id", "query", "source"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "base": {
+                      "$ref": "#/components/schemas/Policy"
+                    },
+                    "binding": {
+                      "$ref": "#/components/schemas/Policy"
+                    },
+                    "database": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "type": "string"
+                    },
+                    "statement": {
+                      "$ref": "#/components/schemas/Statement"
+                    }
+                  },
+                  "required": ["base", "binding", "database", "decision", "statement"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/templates": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Template"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Template"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "adminBearer": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+name: Set up Windows development tools
+description: Install the repository toolchains and locked JavaScript dependencies
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version-file: .node-version
+    - name: Install pnpm
+      shell: pwsh
+      run: npm install --global pnpm@10.27.0
+    - name: Install locked dependencies
+      shell: pwsh
+      run: pnpm install --frozen-lockfile
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version-file: server/go.mod
+        cache-dependency-path: server/go.sum
+    - name: Install pinned Rust toolchain
+      shell: pwsh
+      run: rustup show

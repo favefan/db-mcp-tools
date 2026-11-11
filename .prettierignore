@@ -1,0 +1,12 @@
+node_modules/
+dist/
+target/
+coverage/
+artifacts/
+client/src-tauri/binaries/
+client/src-tauri/gen/
+pnpm-lock.yaml
+Cargo.lock
+go.sum
+.cache/
+.tmp/

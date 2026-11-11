@@ -1,0 +1,36 @@
+node_modules/
+.pnpm-store/
+dist/
+target/
+coverage/
+*.tsbuildinfo
+
+# Build inputs and outputs; never commit packaged server binaries.
+client/src-tauri/binaries/
+client/src-tauri/gen/
+server/bin/
+artifacts/
+output/playwright/
+.playwright-cli/
+.cache/
+.tmp/
+
+# Local state and credentials.
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.toml
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.log
+data/
+backups/
+
+.DS_Store
+Thumbs.db
+.idea/

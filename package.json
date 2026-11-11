@@ -1,0 +1,25 @@
+{
+  "name": "db-mcp-tools",
+  "private": true,
+  "packageManager": "pnpm@10.27.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "format": "node scripts/format.mjs",
+    "format:check": "node scripts/format.mjs --check",
+    "generate:api": "go -C server run ./cmd/contract && pnpm --dir client generate:api && pnpm exec prettier --write docs/openapi.json client/src/lib/contract.ts",
+    "smoke:runtime": "node scripts/smoke-runtime.mjs",
+    "package:server": "node scripts/package-server.mjs",
+    "package:client": "node scripts/package-client.mjs",
+    "test:databases": "node scripts/test-databases.mjs"
+  },
+  "devDependencies": {
+    "@taplo/cli": "0.7.0",
+    "archiver": "8.0.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-sql": "0.20.0"
+  },
+  "version": "1.0.9",
+  "license": "MIT"
+}

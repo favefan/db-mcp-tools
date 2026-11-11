@@ -1,0 +1,197 @@
+[
+  {
+    "id": "cargo:alloc-stdlib@0.3.0",
+    "files": [
+      {
+        "path": "upstream/alloc/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE",
+        "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae"
+      }
+    ],
+    "provenance": "License from the exact commit recorded by Cargo VCS metadata.",
+    "review_required": false
+  },
+  {
+    "id": "cargo:tauri-plugin@2.7.2",
+    "files": [
+      {
+        "path": "upstream/tauri/LICENSE-APACHE-2.0",
+        "source_url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE-APACHE-2.0",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+      },
+      {
+        "path": "upstream/tauri/LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE-MIT",
+        "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
+      },
+      {
+        "path": "upstream/tauri/LICENSE.spdx",
+        "source_url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE.spdx",
+        "sha256": "5e834fe9788c524210deda859c46a550ffa5aa0cba9ea0572f0d81120e97c008"
+      }
+    ],
+    "provenance": "Workspace license files from the exact Cargo VCS commit.",
+    "review_required": false
+  },
+  {
+    "id": "cargo:webview2-com@0.39.1",
+    "files": [
+      {
+        "path": "upstream/webview/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+        "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+      }
+    ],
+    "provenance": "Repository license from the exact Cargo VCS commit.",
+    "review_required": false
+  },
+  {
+    "id": "cargo:webview2-com-sys@0.39.1",
+    "files": [
+      {
+        "path": "upstream/webview/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+        "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+      }
+    ],
+    "provenance": "Repository license from the exact Cargo VCS commit.",
+    "review_required": false
+  },
+  {
+    "id": "cargo:webview2-com-macros@0.8.1",
+    "files": [
+      {
+        "path": "upstream/webview-macros/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/dffa41a8a46d3f5565eefbff2de57d38d399f158/LICENSE",
+        "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+      }
+    ],
+    "provenance": "Repository license from the exact Cargo VCS commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-compose-refs@1.1.2",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-context@1.1.2",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-direction@1.1.1",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-id@1.1.1",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-use-callback-ref@1.1.1",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-use-escape-keydown@1.1.1",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "npm:@radix-ui/react-use-layout-effect@1.1.1",
+    "files": [
+      {
+        "path": "upstream/radix/LICENSE",
+        "source_url": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+        "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+      }
+    ],
+    "provenance": "Workspace license from the npm registry gitHead commit.",
+    "review_required": false
+  },
+  {
+    "id": "cargo:selectors@0.38.0",
+    "files": [
+      {
+        "path": "upstream/mpl/LICENSE.txt",
+        "source_url": "https://www.mozilla.org/MPL/2.0/index.txt",
+        "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+      }
+    ],
+    "provenance": "The crate source header explicitly refers to Mozilla MPL 2.0. The official full license text is included; source remains available from the exact crates.io archive.",
+    "review_required": false
+  },
+  {
+    "id": "npm:react-remove-scroll-bar@2.3.8",
+    "files": [
+      {
+        "path": "upstream/mit-standard/LICENSE.txt",
+        "source_url": "https://spdx.org/licenses/MIT.txt",
+        "sha256": "c3b1b78bc8bd3ea13aa4bc9778442d16560270afa235006d816e5e88cef24db4"
+      }
+    ],
+    "provenance": "The npm package declares MIT but supplies no license notice; its recorded gitHead is unavailable in the declared repository. Standard SPDX MIT text and published author metadata are included; the missing upstream notice remains marked for review.",
+    "review_required": true
+  },
+  {
+    "id": "tooling:nsis-tauri-utils@0.5.3",
+    "files": [
+      {
+        "path": "upstream/nsis-utils/LICENSE_APACHE-2.0",
+        "source_url": "https://raw.githubusercontent.com/tauri-apps/nsis-tauri-utils/nsis_tauri_utils-v0.5.3/LICENSE_APACHE-2.0",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+      },
+      {
+        "path": "upstream/nsis-utils/LICENSE_MIT",
+        "source_url": "https://raw.githubusercontent.com/tauri-apps/nsis-tauri-utils/nsis_tauri_utils-v0.5.3/LICENSE_MIT",
+        "sha256": "1c1020fa10a6bf318717e82c911bcc54ebdfb9bb280460ae332bcb2f82f57fbe"
+      }
+    ],
+    "provenance": "Official release-tag license files for the installer plugin; its binary hash is pinned by Tauri CLI.",
+    "review_required": false
+  }
+]

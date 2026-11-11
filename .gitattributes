@@ -1,0 +1,25 @@
+# Normalize text in both the index and working tree on every platform.
+* text=auto eol=lf
+
+# Windows command files are the only intentional CRLF exception.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.webp -text
+*.gif -text
+*.ico -text
+*.icns -text
+*.pdf -text
+*.zip -text
+*.gz -text
+*.exe -text
+*.dll -text
+*.so -text
+*.dylib -text
+*.db -text
+*.sqlite -text
+*.sqlite3 -text
+*.woff2 -text

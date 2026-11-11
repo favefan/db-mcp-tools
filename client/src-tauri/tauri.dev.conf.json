@@ -1,0 +1,16 @@
+{
+  "identifier": "local.dbmcp.tools.dev",
+  "productName": "DB MCP Tools Dev",
+  "app": {
+    "windows": [
+      {
+        "title": "DB MCP Tools Dev",
+        "decorations": false,
+        "width": 1120,
+        "height": 760,
+        "minWidth": 960,
+        "minHeight": 640
+      }
+    ]
+  }
+}
