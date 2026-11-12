@@ -10,12 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"dbmcp.local/server/internal/model"
 )
 
 type BackupInfo struct {
+	ID        string            `json:"id,omitempty"`
 	Path      string            `json:"path"`
 	Version   string            `json:"version"`
 	Schema    int               `json:"schema"`
@@ -122,6 +124,7 @@ func (s *Store) Backups() ([]BackupInfo, error) {
 			continue
 		}
 		v.Path = p
+		v.ID = e.Name()
 		out = append(out, v)
 	}
 	slices.SortFunc(out, func(a, b BackupInfo) int {
@@ -141,6 +144,82 @@ func (s *Store) Backups() ([]BackupInfo, error) {
 	})
 	return out, nil
 }
+
+var ErrInvalidBackup = errors.New("backup must be a direct directory containing only backup files")
+
+// DeleteBackup accepts a server-issued directory ID, never a client file path.
+// Root handles keep all operations within this data directory, including when
+// another process changes a path while it is being checked.
+func (s *Store) DeleteBackup(id string) error {
+	if id == "" || id == "." || id == ".." || !filepath.IsLocal(id) ||
+		filepath.Base(id) != id || strings.ContainsAny(id, `/\:`) {
+		return ErrInvalidBackup
+	}
+	data, err := os.OpenRoot(s.Dir)
+	if err != nil {
+		return err
+	}
+	defer data.Close()
+	info, err := data.Lstat("backups")
+	if os.IsNotExist(err) {
+		return sql.ErrNoRows
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return ErrInvalidBackup
+	}
+	backups, err := data.OpenRoot("backups")
+	if err != nil {
+		return err
+	}
+	defer backups.Close()
+	info, err = backups.Lstat(id)
+	if os.IsNotExist(err) {
+		return sql.ErrNoRows
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return ErrInvalidBackup
+	}
+	backup, err := backups.OpenRoot(id)
+	if err != nil {
+		return err
+	}
+	defer backup.Close()
+	directory, err := backup.Open(".")
+	if err != nil {
+		return err
+	}
+	entries, err := directory.ReadDir(-1)
+	directory.Close()
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() ||
+			!slices.Contains([]string{"state.sqlite", "key", "admin.token", "manifest.json"}, entry.Name()) {
+			return ErrInvalidBackup
+		}
+	}
+	info, err = backup.Lstat("manifest.json")
+	if err != nil || !info.Mode().IsRegular() {
+		return ErrInvalidBackup
+	}
+	// Keep the manifest until last, so a failed deletion stays visible for retry.
+	for _, name := range []string{"state.sqlite", "key", "admin.token", "manifest.json"} {
+		if err = backup.Remove(name); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	if err = backup.Close(); err != nil {
+		return err
+	}
+	return backups.Remove(id)
+}
 func (s *Store) RetainBackups(keep int) error {
 	backups, err := s.Backups()
 	if err != nil {
@@ -150,25 +229,7 @@ func (s *Store) RetainBackups(keep int) error {
 		return errors.New("backup retention must be positive")
 	}
 	for _, v := range backups[min(keep, len(backups)):] {
-		entries, err := os.ReadDir(v.Path)
-		if err != nil {
-			return err
-		}
-		safe := true
-		for _, e := range entries {
-			if e.IsDir() || !slices.Contains([]string{"state.sqlite", "key", "admin.token", "manifest.json"}, e.Name()) {
-				safe = false
-			}
-		}
-		if !safe {
-			continue
-		}
-		for _, e := range entries {
-			if err = os.Remove(filepath.Join(v.Path, e.Name())); err != nil {
-				return err
-			}
-		}
-		if err = os.Remove(v.Path); err != nil {
+		if err = s.DeleteBackup(v.ID); err != nil && !errors.Is(err, ErrInvalidBackup) && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
 	}

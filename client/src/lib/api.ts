@@ -16,6 +16,7 @@ export type Column = components["schemas"]["Column"];
 export type Template = components["schemas"]["Template"];
 export type Effective = components["schemas"]["Effective"];
 export type Configuration = components["schemas"]["Configuration"];
+export type BackupInfo = components["schemas"]["BackupInfo"];
 export interface Profile {
   id: string;
   name: string;

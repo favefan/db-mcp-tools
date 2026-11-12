@@ -216,7 +216,7 @@ Admin endpoints use `/admin/v1` with cursor pagination, stable error codes, and 
 | `entities` / `credentials` / `bindings` | Registration, issue / rotate / revoke, disable, instance authorization                                         |
 | `approvals`                             | List, details, approve once, deny, and scoped remembered rules with atomic decisions                           |
 | `audit-events`                          | Filters, pagination, request details and related events; per-request exports include retained SQL / parameters |
-| `settings` / `backups`                  | Settings, configuration export / import, consistent snapshots, controlled restore                              |
+| `settings` / `backups`                  | Settings, configuration export / import, consistent snapshots, per-backup deletion, controlled restore         |
 | `events`                                | SSE for approval / state changes; reload lists after disconnect without a complex event bus                    |
 
 The UI proxies Admin requests and SSE through Rust and updates TanStack Query through Tauri events. Protocol mismatches show upgrade guidance rather than silently trying historical APIs.
@@ -237,5 +237,7 @@ One CLI provides `serve`, `run start|stop|restart|status`, `service install|unin
 Configuration export is versioned JSON without passwords, tokens, pending requests, result caches, or raw audit payloads. Import previews a plan and applies it in one SQLite transaction; credentials are reissued. Full state backup uses a consistent SQLite snapshot rather than copying an online `state.sqlite` without WAL.
 
 Full restore requires shutdown, snapshots current state, and checks version / integrity. Keep matching keys with the state snapshot; ordinary configuration export contains no keys. There are no scheduled, startup, or profile-switch backups. Manual backups and safety snapshots before explicit upgrades, restores, and schema migrations remain.
+
+Backup lists include a server-issued directory ID. Administrator `DELETE /admin/v1/backups/{id}` uses Go `os.Root` handles anchored beneath the data directory, rejects path traversal and linked directories, and removes only recognized backup files. Unexpected contents are retained. The manifest is removed last so a failed deletion remains visible for retry. Successful deletion emits an audit event and state-change notification. The desktop uses this endpoint and never deletes MCP Server files itself.
 
 Remote MCP requires explicit listeners and CIDRs with TLS or an existing reverse proxy. Admin stays on loopback, reached through an existing SSH tunnel. A remote connection grants no remote OS service control. There is no built-in OAuth server, network discovery, or remote execution agent.

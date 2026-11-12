@@ -1,30 +1,29 @@
-# DB MCP Tools v1.0.12
+# DB MCP Tools v1.0.13
 
-Client **1.0.12** ships with MCP Server **1.0.11**. This release fixes bundled installation upgrades and separates client and MCP Server version maintenance.
+Client and MCP Server **1.0.13** add deletion of saved backups.
 
 ## Highlights
 
-- Windows bundled installers automatically upgrade older client-managed MCP Server deployments during installation, with a safety snapshot and preservation of their running or stopped state.
-- Existing HTTP connections, independent services, and separately selected external executables are left alone. Matching or newer managed MCP Server versions are not upgraded again.
-- Installation failures are reported before application replacement completes, with recovery information in the installer log and a retry option.
-- Client-only changes no longer require an MCP Server version bump. When MCP Server code changes, its version catches up to that client release.
-- Removed the blanket MCP Server 1.0.11 requirement for local management. The existing API compatibility floor remains 1.0.2; newer CLI operations are used only when supported.
+- Delete individual backups from Settings → Data management → Backup and restore, with confirmation before removal.
+- Refresh the backup list after deletion and clear the restore selection if it pointed to the deleted snapshot.
+- The MCP Server handles deletion through an authenticated administrator endpoint using a server-issued backup ID. Paths outside the backup directory, directory links, and unexpected contents are rejected.
+- Existing MCP Servers remain compatible. Only backup deletion requires MCP Server 1.0.13; the global API compatibility floor remains 1.0.2.
 
 ## Downloads
 
 | File                                                         | Purpose                                                                           |
 | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| `db-mcp-tools-client-bundled-1.0.12-windows-amd64.setup.exe` | Desktop client 1.0.12 with MCP Server 1.0.11; recommended for local use           |
-| `db-mcp-tools-client-none-1.0.12-windows-amd64.setup.exe`    | Desktop client only, for existing MCP Servers or separately installed executables |
-| `dbmcp-server-1.0.11-windows-amd64.zip`                      | Standalone MCP Server 1.0.11, management CLI, and STDIO Bridge                    |
+| `db-mcp-tools-client-bundled-1.0.13-windows-amd64.setup.exe` | Desktop client with MCP Server 1.0.13; recommended for local use                  |
+| `db-mcp-tools-client-none-1.0.13-windows-amd64.setup.exe`    | Desktop client only, for existing MCP Servers or separately installed executables |
+| `dbmcp-server-1.0.13-windows-amd64.zip`                      | Standalone MCP Server, management CLI, and STDIO Bridge                           |
 | `SHA256SUMS`                                                 | Checksums for all six release attachments                                         |
 
-Installers are unsigned. Public packages include PostgreSQL, MySQL, and SQL Server drivers; optional local DM8 builds are not included. The attachments also include client build manifests and `source-maps.zip`.
+Installers are unsigned. Public packages include PostgreSQL, MySQL, and SQL Server drivers; optional local DM8 builds are not included. Client build manifests and `source-maps.zip` are also attached.
 
 ## Upgrading
 
-Run the bundled Windows installer to update the client and older managed local MCP Servers together. No separate in-app upgrade action is needed for those deployments. Profiles, credentials, business data, and permissions are preserved. Reinstalling with an unchanged MCP Server version does not create another upgrade snapshot.
+The bundled Windows installer updates older managed local MCP Servers during installation, preserving data, credentials, and upgrade safety snapshots. This version adds an administrator endpoint and does not change the SQLite schema or existing backup format.
 
-Client-only installations and independently maintained MCP Servers keep explicit upgrade controls. Ordinary application startup and profile switching do not upgrade or back up the MCP Server.
+For independently maintained MCP Servers, update the server to enable deletion. Other client features continue to work with compatible older servers.
 
-See the [user guide](docs/user-guide.md) for setup and recovery, the [development guide](docs/development.md) for platform prerequisites, and the [changelog](CHANGELOG.md) for the full history.
+See the [user guide](docs/user-guide.md), [development guide](docs/development.md), and [changelog](CHANGELOG.md).

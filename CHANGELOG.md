@@ -4,6 +4,18 @@ Notable changes for users and contributors, listed from newest to oldest.
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-11-12
+
+### Added
+
+- Backup deletion with confirmation in Data management, automatic list refresh, and restore selection cleanup.
+- An authenticated `DELETE /admin/v1/backups/{id}` endpoint, server-issued backup IDs, bounded filesystem operations, and deletion audit events.
+
+### Changed
+
+- MCP Server catches up to client version 1.0.13 for the new endpoint. Older servers retain existing features; only deletion requires 1.0.13.
+- Backup deletion rejects path traversal, directory links, and unexpected contents while preserving live state and other snapshots.
+
 ## [1.0.12] - 2026-11-12
 
 ### Changed

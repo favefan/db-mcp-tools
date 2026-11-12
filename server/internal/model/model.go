@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const Version = "1.0.11"
+const Version = "1.0.13"
 const APIVersion = 1
 
 func ID() string {

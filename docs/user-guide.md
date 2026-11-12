@@ -115,6 +115,8 @@ Upgrade stops the managed process, backs up, deploys, updates existing service r
 
 Full backups contain a consistent SQLite snapshot, matching keys, administrator credentials, and a hash manifest. There are no scheduled, startup, or profile-switch backups. Manual backups and safety snapshots before upgrades, restores, and schema migrations remain. Configuration exports omit secrets; imports create disabled new objects without replacing existing state.
 
+In Settings → Data management → Backup and restore, use a backup row's delete action and confirm to remove that snapshot. Deletion is permanent, removes only the selected backup, and does not change live MCP Server data. The list refreshes afterward; a matching restore selection is cleared. This action requires MCP Server 1.0.13 or later and is unavailable on older servers, whose other features remain usable.
+
 ```sh
 dbmcp --data-dir <directory> backup
 dbmcp --data-dir <directory> restore <backup-directory>

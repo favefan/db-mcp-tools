@@ -487,6 +487,16 @@ func Admin(a *app.App, stop func(), mode string) http.Handler {
 		}
 		return err
 	})
+	route(m, "DELETE /admin/v1/backups/{id}", func(w http.ResponseWriter, r *http.Request) error {
+		id := r.PathValue("id")
+		if err := s.DeleteBackup(id); err != nil {
+			return err
+		}
+		_ = s.Audit(model.Audit{Action: "backup.delete", Decision: "deleted", Detail: id})
+		a.Changed()
+		write(w, map[string]bool{"deleted": true})
+		return nil
+	})
 	route(m, "GET /admin/v1/configuration", func(w http.ResponseWriter, r *http.Request) error {
 		v, err := s.Export(r.Context())
 		if err == nil {

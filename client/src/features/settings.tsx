@@ -23,6 +23,7 @@ import {
   type LocalDefaults,
   type LocalStatus,
   type SessionView,
+  type BackupInfo,
 } from "../lib/api";
 import {
   Field,
@@ -45,7 +46,7 @@ import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { isTauri } from "@tauri-apps/api/core";
 import { hasDesktop } from "../lib/desktop";
 import { DiagnosticExport } from "../components/diagnostic-export";
-import { newerServer, serverCompatibility } from "../lib/server-version";
+import { newerServer, serverCompatibility, supportsBackupDeletion } from "../lib/server-version";
 
 const schema = z.object({
   endpoint: z.url(),
@@ -106,6 +107,7 @@ export function Settings({
     file: string;
   }>();
   const [restorePath, setRestorePath] = useState("");
+  const [deletingBackup, setDeletingBackup] = useState<BackupInfo>();
   const [selectedBuild, setSelectedBuild] = useState<LocalDefaults>();
   const client = useQueryClient();
   const compatibility = serverCompatibility(health);
@@ -172,7 +174,7 @@ export function Settings({
   });
   const backups = useQuery({
     queryKey: ["backups"],
-    queryFn: () => api<{ path: string; created_at: string }[]>("backups"),
+    queryFn: () => api<BackupInfo[]>("backups"),
     enabled: !!health && !compatibility,
   });
   const previousError = useRef("");
@@ -565,7 +567,7 @@ export function Settings({
             >
               创建完整备份
             </Button>
-            <DataTable label="备份记录" columns={["创建时间", "备份路径"]}>
+            <DataTable label="备份记录" columns={["创建时间", "备份路径", "操作"]}>
               {backups.data?.map((b) => (
                 <tr key={b.path}>
                   <td>
@@ -573,6 +575,21 @@ export function Settings({
                   </td>
                   <td>
                     <code>{b.path}</code>
+                  </td>
+                  <td>
+                    <Button
+                      variant="text"
+                      danger
+                      disabled={busy || !b.id || !supportsBackupDeletion(health)}
+                      title={
+                        supportsBackupDeletion(health)
+                          ? "删除备份"
+                          : "删除备份需要 MCP Server 1.0.13 或更新版本"
+                      }
+                      onClick={() => setDeletingBackup(b)}
+                    >
+                      删除
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -670,6 +687,39 @@ export function Settings({
             </Button>
           </div>
         </section>
+        {deletingBackup && (
+          <Modal
+            title="删除备份"
+            description="删除所选备份，不影响当前 MCP Server 数据。"
+            onClose={() => {
+              if (!busy) setDeletingBackup(undefined);
+            }}
+          >
+            <p>删除此备份？此操作不可撤销。</p>
+            <p>
+              <code>{deletingBackup.path}</code>
+            </p>
+            <div className="form-actions">
+              <Button disabled={busy} onClick={() => setDeletingBackup(undefined)}>
+                取消
+              </Button>
+              <Button
+                danger
+                disabled={busy || !health || !supportsBackupDeletion(health)}
+                onClick={() =>
+                  void perform(async () => {
+                    await api(`backups/${encodeURIComponent(deletingBackup.id!)}`, "DELETE");
+                    if (restorePath === deletingBackup.path) setRestorePath("");
+                    setDeletingBackup(undefined);
+                    toast.success("备份已删除");
+                  })
+                }
+              >
+                删除备份
+              </Button>
+            </div>
+          </Modal>
+        )}
         {incoming && (
           <Modal title="确认配置导入" onClose={() => setIncoming(undefined)}>
             <p>{incoming.file}</p>

@@ -333,6 +333,9 @@
       "BackupInfo": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -2594,7 +2597,7 @@
   },
   "info": {
     "title": "DB MCP Tools Admin API",
-    "version": "1.0.11"
+    "version": "1.0.13"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -3061,6 +3064,81 @@
                     }
                   },
                   "required": ["path"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "401": {
+            "description": "Invalid administrator credential (plain text)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected"
+          }
+        }
+      }
+    },
+    "/admin/v1/backups/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["deleted"],
                   "type": "object"
                 }
               }

@@ -2,6 +2,8 @@
 
 Exact versions are recorded in `server/go.mod`, `client/src-tauri/Cargo.lock`, and `pnpm-lock.yaml`. The source uses MIT; see [Third-party licenses](../third-party/README.md) for dependency licenses and provenance.
 
+Backup deletion uses the pinned Go toolchain's standard `os.Root` directory handles to constrain filesystem access, with explicit rejection of linked backup directories. It adds no external filesystem dependency.
+
 ## Main dependencies
 
 | Capability             | Choice                                           | Use and constraints                                                                                      |

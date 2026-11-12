@@ -10,6 +10,7 @@ import type {
   Audit,
   AuditDetail,
   Profile,
+  BackupInfo,
 } from "./api";
 import { databaseResource } from "./resource-scope";
 
@@ -131,12 +132,13 @@ const session = () => ({
 });
 const health = {
   server_id: "preview-server",
-  version: "1.0.10",
+  version: "1.0.13",
   api_version: 1,
   mode: "background",
   data_dir: profile.data_dir,
   drivers: { postgres: true, mysql: true, sqlserver: true, dm: true },
 };
+let backups: BackupInfo[] = [];
 const logs: Audit[] = instances.map((i, n) => ({
   id: 205 - n,
   time: new Date(Date.now() - n * 900000).toISOString(),
@@ -397,7 +399,28 @@ async function request(path: string, method: string, body: unknown): Promise<unk
     if (entity) entity.enabled = registration.status === "approved";
     return registration;
   }
-  if (route === "backups") return [];
+  if (route === "backups") {
+    if (method === "GET") return backups;
+    const id = `preview-backup-${Date.now()}`;
+    const path = `${profile.data_dir}/backups/${id}`;
+    backups = [
+      {
+        id,
+        path,
+        created_at: new Date().toISOString(),
+        version: health.version,
+        schema: 6,
+        server_id: health.server_id,
+        files: {},
+      },
+      ...backups,
+    ];
+    return { path };
+  }
+  if (parts[0] === "backups" && method === "DELETE") {
+    backups = backups.filter((backup) => backup.id !== parts[1]);
+    return { deleted: true };
+  }
   if (route === "configuration")
     return { version: 1, instances, entities, templates, bindings: [] };
   throw new Error("这是界面演示数据；数据库、规则执行和本机操作请在桌面客户端验证。");

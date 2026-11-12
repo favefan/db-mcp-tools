@@ -2,6 +2,8 @@ import { gte, gt, valid } from "semver";
 import type { Health } from "./api";
 
 export const minimumServerVersion = "1.0.2";
+export const supportsBackupDeletion = (health?: Health) =>
+  !!health && health.api_version === 1 && !!valid(health.version) && gte(health.version, "1.0.13");
 export function serverCompatibility(health?: Health): string | undefined {
   if (!health) return;
   if (health.api_version !== 1)

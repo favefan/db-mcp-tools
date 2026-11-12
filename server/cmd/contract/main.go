@@ -98,6 +98,7 @@ func routes(schemas map[string]any) map[string]any {
 		{"simulate", "post", object(map[string]any{"decision": str, "database": str, "statement": ref("Statement"), "base": ref("Policy"), "binding": ref("Policy")}), object(map[string]any{"entity_id": str, "credential_id": str, "source": str, "query": ref("Query")}), nil},
 		{"backups", "get", array(ref("BackupInfo")), nil, nil},
 		{"backups", "post", object(map[string]any{"path": str}), nil, nil},
+		{"backups/{id}", "delete", object(map[string]any{"deleted": boolean}), nil, nil},
 		{"configuration", "get", ref("Configuration"), nil, nil},
 		{"configuration/preview", "post", object(map[string]any{"digest": str, "instances": integer, "entities": integer, "bindings": integer, "templates": integer, "behavior": str}), ref("Configuration"), nil},
 		{"configuration/import", "post", object(map[string]any{"imported": boolean}), object(map[string]any{"configuration": ref("Configuration"), "digest": str}), nil},
