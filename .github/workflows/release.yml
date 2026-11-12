@@ -45,13 +45,15 @@ jobs:
       - name: Prepare release attachments and checksums
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          SERVER_VERSION: ${{ steps.version.outputs.server_version }}
         run: |
           $version = $env:RELEASE_VERSION
+          $serverVersion = $env:SERVER_VERSION
           $source = "artifacts/releases/$version"
           $destination = 'artifacts/github-release'
           New-Item -ItemType Directory -Path $destination -ErrorAction Stop | Out-Null
           $names = @(
-            "dbmcp-server-$version-windows-amd64.zip",
+            "dbmcp-server-$serverVersion-windows-amd64.zip",
             "db-mcp-tools-client-none-$version-windows-amd64.setup.exe",
             "db-mcp-tools-client-bundled-$version-windows-amd64.setup.exe",
             "db-mcp-tools-client-none-$version-windows-amd64.manifest.json",

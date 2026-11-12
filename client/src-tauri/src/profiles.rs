@@ -60,11 +60,15 @@ pub struct Owned {
 }
 impl Owned {
     fn from_status(profile: Profile, status: &Value) -> Result<Self, String> {
-        let instance_id = status["instance_id"]
+        let instance_id = status["instance_id"].as_str().unwrap_or_default().into();
+        if status["version"]
             .as_str()
-            .filter(|s| !s.is_empty())
-            .ok_or("MCP Server 缺少进程身份，请升级到 1.0.11")?
-            .into();
+            .and_then(|s| semver::Version::parse(s).ok())
+            .is_some_and(|v| v >= semver::Version::new(1, 0, 10))
+            && status["instance_id"].as_str().is_none_or(str::is_empty)
+        {
+            return Err("MCP Server 响应缺少进程身份，请检查运行状态".into());
+        }
         if status["mode"] != "background" {
             return Err("前台进程或系统服务请使用已有 MCP Server 通过 HTTP 连接".into());
         }
@@ -312,15 +316,66 @@ async fn stop_owned(state: &Desktop) -> Result<(), String> {
         let p = owned.profile.clone();
         let status = call(&p, &["run", "status"]).await?;
         if status["running"] == true {
-            check_identity(&p, &status)?;
-            let current = Owned::from_status(p.clone(), &status)?;
-            call(&p, &["run", "stop", "--instance-id", &current.instance_id]).await?;
+            stop_local(&p, &status).await?;
         } else if Path::new(&p.data_dir).join("runtime.json").exists() {
             return Err("无法确认本次启动的 MCP Server 已停止，请检查本机状态后重试".into());
         }
         state.session.lock().map_err(|e| e.to_string())?.owned = None;
     }
     Ok(())
+}
+async fn stop_local(p: &Profile, status: &Value) -> Result<(), String> {
+    check_identity(p, status)?;
+    let current = Owned::from_status(p.clone(), status)?;
+    if !current.instance_id.is_empty() && cli_at_least(p, 1, 0, 11)? {
+        call(p, &["run", "stop", "--instance-id", &current.instance_id]).await?;
+    } else {
+        call(p, &["run", "stop"]).await?;
+    }
+    Ok(())
+}
+async fn start_local(p: &mut Profile) -> Result<Value, String> {
+    require_managed_program(p)?;
+    if !Path::new(&p.data_dir).join("deployment.toml").exists() {
+        let initialized = initialize_local(p).await?;
+        if let Some(admin) = initialized["admin"].as_str() {
+            p.endpoint = format!("http://{admin}");
+        }
+    }
+    let mut status = if cli_at_least(p, 1, 0, 10)? {
+        let info = call(p, &["runtime", "info"]).await?;
+        p.endpoint = format!(
+            "http://{}",
+            info["admin"].as_str().ok_or("缺少本机管理地址")?
+        );
+        info["status"].clone()
+    } else {
+        call(p, &["run", "status"]).await?
+    };
+    check_identity(p, &status)?;
+    if status["running"] == true {
+        require_running_version(&status)?;
+    }
+    if status["running"] != true {
+        let native = call(p, &["service", "status"]).await?;
+        match native["installed"].as_bool() {
+            Some(true) => {
+                return Err("该目录已注册为系统服务，请使用已有 MCP Server 通过 HTTP 连接".into());
+            }
+            Some(false) => {
+                if !Path::new(&p.data_dir).join("runtime/current.json").exists()
+                    && cli_at_least(p, 1, 0, 11)?
+                {
+                    call(p, &["runtime", "prepare"]).await?;
+                }
+                call(p, &["run", "start"]).await?;
+            }
+            None => return Err("无法确认本机系统服务状态".into()),
+        }
+        status = call(p, &["run", "status"]).await?;
+    }
+    require_running_version(&status)?;
+    Ok(status)
 }
 pub async fn reconnect(
     app: &tauri::AppHandle,
@@ -329,38 +384,7 @@ pub async fn reconnect(
 ) -> Result<Value, String> {
     let state = app.state::<Desktop>();
     if p.mode == ConnectionMode::Local {
-        require_managed_program(&p)?;
-        if !Path::new(&p.data_dir).join("deployment.toml").exists() {
-            call(&p, &["init", "--allocate-ports"]).await?;
-        }
-        let info = call(&p, &["runtime", "info"]).await?;
-        p.endpoint = format!(
-            "http://{}",
-            info["admin"].as_str().ok_or("缺少本机管理地址")?
-        );
-        let mut status = info["status"].clone();
-        check_identity(&p, &status)?;
-        if status["running"] == true {
-            require_running_version(&status)?;
-        }
-        if status["running"] != true {
-            let native = call(&p, &["service", "status"]).await?;
-            match native["installed"].as_bool() {
-                Some(true) => {
-                    return Err(
-                        "该目录已注册为系统服务，请使用已有 MCP Server 通过 HTTP 连接".into(),
-                    );
-                }
-                Some(false) => {
-                    if !Path::new(&p.data_dir).join("runtime/current.json").exists() {
-                        call(&p, &["runtime", "prepare"]).await?;
-                    }
-                    call(&p, &["run", "start"]).await?;
-                }
-                None => return Err("无法确认本机系统服务状态".into()),
-            }
-            status = call(&p, &["run", "status"]).await?;
-        }
+        let status = start_local(&mut p).await?;
         let mut managed = p.clone();
         managed.server_id = status["server_id"]
             .as_str()
@@ -416,33 +440,27 @@ pub fn require_running_version(status: &Value) -> Result<(), String> {
     if status["version"]
         .as_str()
         .and_then(|s| semver::Version::parse(s).ok())
-        .is_none_or(|v| v < semver::Version::new(1, 0, 11))
+        .is_none_or(|v| v < semver::Version::new(1, 0, 2))
     {
-        return Err("运行中的 MCP Server 版本过旧，请在设置中显式升级".into());
+        return Err("当前操作需要 MCP Server 1.0.2 或更新版本的 API".into());
     }
     Ok(())
 }
 pub fn require_managed_program(p: &Profile) -> Result<(), String> {
-    let modern = |v: &Value| {
-        v.as_str()
-            .and_then(|s| semver::Version::parse(s).ok())
-            .is_some_and(|v| v >= semver::Version::new(1, 0, 11))
-    };
-    let version = crate::program_version(Path::new(&p.executable))?;
-    if !modern(&version["version"]) {
-        return Err("本机托管需要 1.0.11 或更新的 MCP Server，请先升级程序".into());
+    require_running_version(&crate::program_version(Path::new(&p.executable))?)
+}
+pub fn cli_at_least(p: &Profile, major: u64, minor: u64, patch: u64) -> Result<bool, String> {
+    let build = crate::program_version(Path::new(&p.executable))?;
+    let version = build["version"].as_str().ok_or("MCP Server 缺少版本")?;
+    Ok(semver::Version::parse(version).map_err(|e| e.to_string())?
+        >= semver::Version::new(major, minor, patch))
+}
+pub async fn initialize_local(p: &Profile) -> Result<Value, String> {
+    if cli_at_least(p, 1, 0, 10)? {
+        call(p, &["init", "--allocate-ports"]).await
+    } else {
+        call(p, &["init"]).await
     }
-    match fs::read(Path::new(&p.data_dir).join("runtime/current.json")) {
-        Ok(bytes) => {
-            let manifest: Value = serde_json::from_slice(&bytes).map_err(|_| "本机程序清单无效")?;
-            if !modern(&manifest["version"]) {
-                return Err("已部署的 MCP Server 版本过旧，请在设置中显式升级".into());
-            }
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(e.to_string()),
-    }
-    Ok(())
 }
 fn begin(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<Desktop>();
@@ -906,6 +924,41 @@ mod tests {
         }
     }
     #[test]
+    #[ignore = "requires DBMCP_TEST_LEGACY_SERVER and DBMCP_TEST_SERVER executables"]
+    fn older_server_local_start_attach_and_stop_without_upgrade() {
+        let old = std::env::var("DBMCP_TEST_LEGACY_SERVER").unwrap();
+        let new = std::env::var("DBMCP_TEST_SERVER").unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let mut p = profile("legacy-compatibility");
+        p.mode = ConnectionMode::Local;
+        p.data_dir = dir.path().join("data").to_string_lossy().into();
+        p.executable = new;
+        tauri::async_runtime::block_on(async {
+            let initialized = initialize_local(&p).await.unwrap();
+            p.endpoint = format!("http://{}", initialized["admin"].as_str().unwrap());
+            p.server_id = initialized["server_id"].as_str().unwrap().into();
+            p.executable = old;
+            let result: Result<(), String> = async {
+                let status = start_local(&mut p).await?;
+                if status["running"] != true {
+                    return Err("Legacy MCP Server did not start".into());
+                }
+                let health = call(&p, &["api", "/admin/v1/health"]).await?;
+                require_running_version(&health)?;
+                let second = start_local(&mut p).await?;
+                assert_eq!(second["instance_id"], status["instance_id"]);
+                stop_local(&p, &second).await?;
+                assert_eq!(call(&p, &["run", "status"]).await?["running"], false);
+                assert!(!dir.path().join("data/runtime/current.json").exists());
+                Ok(())
+            }
+            .await;
+            let cleanup = call(&p, &["run", "stop"]).await;
+            cleanup.unwrap();
+            result.unwrap();
+        });
+    }
+    #[test]
     fn migration_preserves_old_files_and_profile_preferences() {
         let dir = tempfile::tempdir().unwrap();
         let old =
@@ -986,7 +1039,9 @@ mod tests {
     }
     #[test]
     fn local_control_requires_server_identity_and_supported_process_mode() {
-        assert!(require_running_version(&json!({"version":"1.0.10"})).is_err());
+        assert!(require_running_version(&json!({"version":"1.0.1"})).is_err());
+        assert!(require_running_version(&json!({"version":"1.0.2"})).is_ok());
+        assert!(require_running_version(&json!({"version":"1.0.10"})).is_ok());
         assert!(require_running_version(&json!({"version":"1.0.11"})).is_ok());
         let mut p = profile("first");
         p.server_id = "same-data".into();
@@ -1001,7 +1056,11 @@ mod tests {
             &json!({"instance_id":"current","mode":"foreground"})
         )
         .is_err());
-        assert!(Owned::from_status(p.clone(), &json!({"mode":"background"})).is_err());
+        assert!(Owned::from_status(p.clone(), &json!({"mode":"background"})).is_ok());
+        assert!(
+            Owned::from_status(p.clone(), &json!({"mode":"background","version":"1.0.11"}))
+                .is_err()
+        );
         let owned =
             Owned::from_status(p, &json!({"instance_id":"replacement","mode":"background"}))
                 .unwrap();

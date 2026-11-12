@@ -1,35 +1,30 @@
-# DB MCP Tools v1.0.11
+# DB MCP Tools v1.0.12
 
-This update simplifies configuration management and desktop interaction, and unifies the lifecycle of locally managed MCP Servers.
+Client **1.0.12** ships with MCP Server **1.0.11**. This release fixes bundled installation upgrades and separates client and MCP Server version maintenance.
 
 ## Highlights
 
-- Renamed environments to configurations and grouped management under **Configurations & MCP Server**. The sidebar menu supports quick switching.
-- Highlighted the active configuration with the accent color, compacted connection options, and corrected collapsed sidebar and form alignment.
-- Removed unnecessary explanations, moved essential help into tooltips, and placed operation notifications in the bottom-right corner.
-- Locally managed MCP Servers now start, attach, and stop with the client. Manual start, stop, and restart remain available. HTTP connections, including `127.0.0.1`, leave process control to the existing MCP Server.
-- Removed desktop system service controls. The MCP Server upgrade action appears only when a newer executable is available.
-- Removed scheduled backups and backups on startup or configuration switching. Manual backups and safety snapshots before upgrades, restores, and schema migrations remain available.
+- Windows bundled installers automatically upgrade older client-managed MCP Server deployments during installation, with a safety snapshot and preservation of their running or stopped state.
+- Existing HTTP connections, independent services, and separately selected external executables are left alone. Matching or newer managed MCP Server versions are not upgraded again.
+- Installation failures are reported before application replacement completes, with recovery information in the installer log and a retry option.
+- Client-only changes no longer require an MCP Server version bump. When MCP Server code changes, its version catches up to that client release.
+- Removed the blanket MCP Server 1.0.11 requirement for local management. The existing API compatibility floor remains 1.0.2; newer CLI operations are used only when supported.
 
 ## Downloads
 
-Choose a Windows x64 package from the release assets:
+| File                                                         | Purpose                                                                           |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `db-mcp-tools-client-bundled-1.0.12-windows-amd64.setup.exe` | Desktop client 1.0.12 with MCP Server 1.0.11; recommended for local use           |
+| `db-mcp-tools-client-none-1.0.12-windows-amd64.setup.exe`    | Desktop client only, for existing MCP Servers or separately installed executables |
+| `dbmcp-server-1.0.11-windows-amd64.zip`                      | Standalone MCP Server 1.0.11, management CLI, and STDIO Bridge                    |
+| `SHA256SUMS`                                                 | Checksums for all six release attachments                                         |
 
-| File                                                         | Purpose                                                                                            |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `db-mcp-tools-client-bundled-1.0.11-windows-amd64.setup.exe` | Desktop client with a local MCP Server; recommended for first-time users                           |
-| `db-mcp-tools-client-none-1.0.11-windows-amd64.setup.exe`    | Desktop client only; connect to an existing MCP Server or select a separately installed executable |
-| `dbmcp-server-1.0.11-windows-amd64.zip`                      | Standalone MCP Server, management CLI, and STDIO Bridge                                            |
-| `SHA256SUMS`                                                 | SHA256 checksums for the release assets                                                            |
-
-Installers are unsigned. Default packages include PostgreSQL, MySQL, and SQL Server drivers. DM8 is available only through an explicit local build and is not included in public packages. See the [development guide](docs/development.md) for native macOS / Linux builds.
-
-The assets also include two client build manifests and `source-maps.zip`. `SHA256SUMS` covers all six attachments other than the checksum file itself. Download the files into the same directory to verify them.
+Installers are unsigned. Public packages include PostgreSQL, MySQL, and SQL Server drivers; optional local DM8 builds are not included. The attachments also include client build manifests and `source-maps.zip`.
 
 ## Upgrading
 
-Run the installer to update an existing client while retaining its data. A bundled client can upgrade its managed local MCP Server. For standalone or remote deployments, back up and update the executable as described in the [user guide](docs/user-guide.md).
+Run the bundled Windows installer to update the client and older managed local MCP Servers together. No separate in-app upgrade action is needed for those deployments. Profiles, credentials, business data, and permissions are preserved. Reinstalling with an unchanged MCP Server version does not create another upgrade snapshot.
 
-Existing instances, entities, policies, connection passwords, configurations, and credentials are preserved. This version adds no SQLite schema migration. Local management requires MCP Server 1.0.11 or later; the old lifecycle toggle is no longer used. Use an HTTP configuration if the MCP Server should run independently. Ordinary startup does not upgrade it automatically; select the upgrade action in settings.
+Client-only installations and independently maintained MCP Servers keep explicit upgrade controls. Ordinary application startup and profile switching do not upgrade or back up the MCP Server.
 
-See the [changelog](CHANGELOG.md) for the full history and the [user guide](docs/user-guide.md) for installation and configuration.
+See the [user guide](docs/user-guide.md) for setup and recovery, the [development guide](docs/development.md) for platform prerequisites, and the [changelog](CHANGELOG.md) for the full history.

@@ -12,7 +12,7 @@ import {
   releases,
   stage,
   validateServerTarget,
-  version,
+  serverVersion as version,
 } from "./package-lib.mjs";
 import { notices } from "./package-notices.mjs";
 
@@ -39,6 +39,7 @@ await writeFile(
     )}. ${dm === "native" ? "Native DM is a local-use build with unconfirmed redistribution permission." : "Native DM is intentionally omitted; it is not a four-driver package."}\n`,
 );
 await manifest(dir, {
+  version,
   kind: "server",
   platform,
   arch,

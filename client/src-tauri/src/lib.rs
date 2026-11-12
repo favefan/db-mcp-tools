@@ -9,6 +9,7 @@ use tauri::{
 };
 
 mod diagnostics;
+mod installer;
 mod integrations;
 mod notifications;
 mod preferences;
@@ -269,12 +270,13 @@ async fn local_command(
     let prepare_runtime = matches!(action.as_str(), "start" | "restart")
         && !std::path::Path::new(&data_dir)
             .join("runtime/current.json")
-            .exists();
+            .exists()
+        && profiles::cli_at_least(&selected, 1, 0, 11)?;
     if prepare_runtime {
         if action == "restart" {
             profiles::call(&selected, &["run", "stop"]).await?;
         }
-        profiles::call(&selected, &["init", "--allocate-ports"]).await?;
+        profiles::initialize_local(&selected).await?;
         profiles::call(&selected, &["runtime", "prepare"]).await?;
     }
     let saved_action = action.clone();
@@ -293,8 +295,10 @@ async fn local_command(
                 .exists()
             {
                 vec!["init"]
-            } else {
+            } else if profiles::cli_at_least(&selected, 1, 0, 10)? {
                 vec!["init", "--allocate-ports"]
+            } else {
+                vec!["init"]
             }
         }
         "start" => vec!["run", "start"],
@@ -533,6 +537,9 @@ async fn events(app: tauri::AppHandle) {
 }
 
 pub fn run() {
+    if let Some(code) = installer::execute() {
+        std::process::exit(code);
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             let handle = app.clone();

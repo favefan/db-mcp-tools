@@ -32,7 +32,7 @@ test("any stale version or release document blocks publication", async (t) => {
       await mkdir(dirname(join(root, path)), { recursive: true });
       await copyFile(join(source, path), join(root, path));
     }
-    for (const path of paths)
+    for (const path of paths.filter((path) => !path.endsWith("model.go")))
       await t.test(path, async () => {
         const file = join(root, path);
         const original = await readFile(file, "utf8");
@@ -43,6 +43,17 @@ test("any stale version or release document blocks publication", async (t) => {
           await writeFile(file, original);
         }
       });
+    const file = join(root, "server/internal/model/model.go");
+    const original = await readFile(file, "utf8");
+    const sourceVersion = original.match(/^const Version = "([^"]+)"$/m)[1];
+    for (const serverVersion of ["1.0.2", version]) {
+      await writeFile(file, original.replace(sourceVersion, serverVersion));
+      assert.equal(await releaseVersion(root, `v${version}`), version);
+    }
+    for (const serverVersion of ["999.0.0", "invalid"]) {
+      await writeFile(file, original.replace(sourceVersion, serverVersion));
+      await assert.rejects(releaseVersion(root, `v${version}`));
+    }
   } finally {
     await rm(root, { recursive: true, force: true });
   }

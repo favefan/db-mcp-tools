@@ -4,6 +4,16 @@ Notable changes for users and contributors, listed from newest to oldest.
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-11-12
+
+### Changed
+
+- Client version is 1.0.12; MCP Server remains 1.0.11. Client-only changes retain the MCP Server version; MCP Server changes catch up to the accompanying client release.
+- Package names, manifests, verification, and tag-driven release assets use each component's own version.
+- Windows bundled installation upgrades older managed MCP Servers before replacing application files, preserving data, credentials, running state, and upgrade safety snapshots.
+- HTTP connections, services, and separately selected external executables remain independent. Repeated installation skips unchanged or newer managed versions.
+- Removed the blanket 1.0.11 local-management requirement. API compatibility remains at 1.0.2, with supported CLI operations selected for older versions.
+
 ## [1.0.11] - 2026-11-11
 
 ### Changed

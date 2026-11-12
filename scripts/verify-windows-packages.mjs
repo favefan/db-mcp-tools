@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { hash, releases, root, version } from "./package-lib.mjs";
+import { hash, releases, root, version, serverVersion } from "./package-lib.mjs";
 
 // Verify fresh default Windows outputs. Historical DM-local releases are not inputs.
 const server = JSON.parse(
   await readFile(
-    join(root, ".cache/package", `dbmcp-server-${version}-windows-amd64`, "manifest.json"),
+    join(root, ".cache/package", `dbmcp-server-${serverVersion}-windows-amd64`, "manifest.json"),
     "utf8",
   ),
 );
-assert.equal(server.version, version);
+assert.equal(server.version, serverVersion);
 assert.equal(server.drivers.dm, false);
 for (const mode of ["none", "bundled"]) {
   const name = `db-mcp-tools-client-${mode}-${version}-windows-amd64`;
@@ -19,7 +19,10 @@ for (const mode of ["none", "bundled"]) {
   assert.equal(manifest.server_mode, mode);
   assert.equal(manifest.signed, false);
   if (mode === "none") assert.equal(manifest.server, null);
-  else assert.equal(manifest.server.drivers.dm, false);
+  else {
+    assert.equal(manifest.server.version, serverVersion);
+    assert.equal(manifest.server.drivers.dm, false);
+  }
   const config = JSON.parse(
     await readFile(
       join(root, ".cache/package", `client-${mode}-x86_64-pc-windows-msvc`, "tauri.package.json"),

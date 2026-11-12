@@ -5,11 +5,13 @@ import { createHash } from "node:crypto";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ZipArchive, TarArchive } from "archiver";
+import { readServerVersion } from "./versions.mjs";
 
 export const root = await realpath(fileURLToPath(new URL("..", import.meta.url)));
 export const version = JSON.parse(
   await readFile(join(root, "client/package.json"), "utf8"),
 ).version;
+export const serverVersion = await readServerVersion(root);
 export const scratch = join(root, ".cache", "package");
 export const releases = join(root, "artifacts", "releases", version);
 export const platforms = {
@@ -157,9 +159,6 @@ export function validateServerTarget(platform, arch, dm) {
 }
 export async function compileServer(output, platform, arch, dm) {
   validateServerTarget(platform, arch, dm);
-  const source = await readFile(join(root, "server/internal/model/model.go"), "utf8");
-  if (!source.includes(`const Version = "${version}"`))
-    throw new Error("Go and client versions differ");
   await mkdir(dirname(output), { recursive: true });
   const env = { ...process.env, GOOS: platform, GOARCH: arch, CGO_ENABLED: "0" };
   await run(
@@ -179,7 +178,7 @@ export async function compileServer(output, platform, arch, dm) {
   if (platform === hostPlatform && arch === hostArch) {
     const actual = JSON.parse(await run(output, ["version"], { quiet: true }));
     if (
-      actual.version !== version ||
+      actual.version !== serverVersion ||
       actual.api_version !== 1 ||
       actual.drivers.dm !== (dm === "native")
     )
@@ -187,6 +186,7 @@ export async function compileServer(output, platform, arch, dm) {
     execution = "native-version-command-passed";
   }
   return {
+    version: serverVersion,
     env,
     execution,
     drivers: { postgres: true, mysql: true, sqlserver: true, dm: dm === "native" },

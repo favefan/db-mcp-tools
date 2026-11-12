@@ -22,7 +22,7 @@ On Linux / macOS, use `bin/dbmcp` as the MCP Server output name. Do not use an i
 
 ## Documentation and contributions
 
-- [v1.0.11 release notes](RELEASE.md) · [Changelog](CHANGELOG.md)
+- [v1.0.12 release notes](RELEASE.md) · [Changelog](CHANGELOG.md)
 - [Installation and usage](docs/user-guide.md)
 - [Development setup and checks](docs/development.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
@@ -37,6 +37,8 @@ pnpm package:client --server=none --target=x86_64-pc-windows-msvc
 pnpm package:client --server=bundled --target=x86_64-pc-windows-msvc
 ```
 
-Packages and `SHA256SUMS` are written to `artifacts/releases/<version>/`, currently `1.0.11`. Build the desktop on its target OS; the MCP Server can be cross-compiled. Use `--dm=native` only for explicitly marked local DM builds. See the development guide for prerequisites and test commands.
+Packages and `SHA256SUMS` are written to `artifacts/releases/<version>/`, currently `1.0.12`. Build the desktop on its target OS; the MCP Server can be cross-compiled. Use `--dm=native` only for explicitly marked local DM builds. See the development guide for prerequisites and test commands.
 
 The source code is licensed under [MIT](LICENSE). Third-party licenses remain applicable.
+
+Client and MCP Server versions are independent. Client 1.0.12 includes MCP Server 1.0.11. Client-only changes retain the MCP Server version; MCP Server changes catch up to the accompanying client release. Minimum MCP Server requirements change only when required APIs change.

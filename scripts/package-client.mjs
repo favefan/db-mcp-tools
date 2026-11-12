@@ -40,6 +40,7 @@ const dir = await stage(`client-${mode}-${target}${dm === "native" ? "-dm-local"
 const payload = join(dir, "payload");
 await mkdir(payload, { recursive: true });
 let server;
+let serverExecutable;
 if (mode === "bundled") {
   console.log("Compiling the bundled Server.");
   const sidecar = join(
@@ -48,6 +49,7 @@ if (mode === "bundled") {
     `dbmcp-${target}${platform === "windows" ? ".exe" : ""}`,
   );
   server = await compileServer(sidecar, platform, arch, dm);
+  serverExecutable = sidecar;
   server.sha256 = await hash(sidecar);
 } else {
   console.log("Building a pure client: Go compilation and Server resources are disabled.");
@@ -94,7 +96,12 @@ await manifest(payload, {
   arch,
   server_mode: mode,
   server: server
-    ? { drivers: server.drivers, sha256: server.sha256, execution_validation: server.execution }
+    ? {
+        version: server.version,
+        drivers: server.drivers,
+        sha256: server.sha256,
+        execution_validation: server.execution,
+      }
     : null,
   licenses: license,
   distribution: dm === "native" ? "local-use-only-dm-license-unconfirmed" : "unsigned-local-build",
@@ -110,7 +117,7 @@ const override = {
   },
 };
 if (platform === "windows") {
-  override.bundle.windows = { nsis: await windowsInstaller(dir) };
+  override.bundle.windows = { nsis: await windowsInstaller(dir, serverExecutable) };
 }
 const config = join(dir, "tauri.package.json");
 await writeFile(config, JSON.stringify(override, null, 2) + "\n");
@@ -183,7 +190,9 @@ const packaged = {
   arch,
   target,
   server_mode: mode,
-  server: server ? { drivers: server.drivers, sha256: server.sha256 } : null,
+  server: server
+    ? { version: server.version, drivers: server.drivers, sha256: server.sha256 }
+    : null,
   // Tauri restores this binary after adding per-installer bundle metadata.
   // It is not the byte hash of the executable extracted from an installer.
   unbundled_app_sha256: await hash(app),

@@ -37,7 +37,7 @@ A profile stores its connection target, credentials, and client preferences. Fir
 
 Theme, notifications, close behavior, and automatic lightweight mode are per profile. Login startup, installation location, and application version are shared. Business data and permissions live in the MCP Server, so profiles targeting the same MCP Server share its business state. Administrator credentials are stored separately by profile in the OS keyring.
 
-Local management requires MCP Server 1.0.11 or later. Activating the profile starts or attaches to an identity-matched background process; switching away, disconnecting, or exiting stops it. Manual start, stop, and restart remain available in settings. The desktop does not install, migrate, or uninstall system services. Connect to services or terminal-controlled foreground processes using an existing MCP Server HTTP configuration. HTTP connections, including `127.0.0.1`, never control processes. Tray and lightweight mode keep the local MCP Server running. Forced termination cannot guarantee graceful shutdown.
+Local management accepts API-compatible MCP Servers, including older versions. Activating the profile starts or attaches to an identity-matched background process; switching away, disconnecting, or exiting stops it. Newer CLI features are used only when supported. Manual start, stop, and restart remain available in settings. The desktop does not install, migrate, or uninstall system services. Connect to services or terminal-controlled foreground processes using an existing MCP Server HTTP configuration. HTTP connections, including `127.0.0.1`, never control processes. Tray and lightweight mode keep the local MCP Server running. Forced termination cannot guarantee graceful shutdown.
 
 Legacy connections and preferences are preserved. Old lifecycle toggles in `profiles.json` are ignored: local management owns startup and shutdown, while HTTP remains independent. Legacy `profile.json` can still migrate into `default`.
 
@@ -85,9 +85,9 @@ See [Dependencies and limitations](dependencies.md) for SQL scope. PostgreSQL Ex
 
 ## Runtime and system services
 
-Bundled clients show the packaged executable version and offer explicit upgrades. The coordinator stops the managed process, creates a safety snapshot, deploys the new version, and restores running state. Ordinary startup and configuration switching do not upgrade or back up.
+The Windows bundled installer upgrades older client-managed MCP Server deployments during installation. It creates a safety snapshot and restores each deployment's running or stopped state. Same-version and newer deployments are not upgraded again. HTTP connections, services, separately selected external executables, and deployments requiring drivers absent from the bundled build are retained. Failures stop installation and point to `installer-migration.log`, with a retry option. Ordinary startup and configuration switching do not upgrade or back up.
 
-Remote MCP Servers and separately selected executables are not replaced automatically. Disconnect and select a newer executable in the configuration editor, then use the MCP Server upgrade action when an update is available. Business requests require MCP Server 1.0.2 or later; local management requires 1.0.11. Settings show running and packaged versions. On upgrade failure, inspect diagnostics and retained snapshots rather than repeatedly uninstalling or deleting data.
+Remote MCP Servers and separately selected executables are not replaced automatically. Disconnect and select a newer executable in the configuration editor, then use the MCP Server upgrade action when an update is available. API compatibility requires MCP Server 1.0.2 or later, independently of the client version. Settings show running and packaged versions. On upgrade failure, inspect diagnostics and retained snapshots rather than repeatedly uninstalling or deleting data.
 
 Local management follows the client lifecycle; existing MCP Servers only connect. Client login startup, closing to tray, and system service startup are separate settings.
 

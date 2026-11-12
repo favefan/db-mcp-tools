@@ -67,6 +67,27 @@ Function DbmcpLogMigration
   Pop $R0
 FunctionEnd
 
+Function DbmcpUpgradeBundledServer
+  !ifdef DBMCP_BUNDLED_SERVER
+    InitPluginsDir
+    SetOutPath "$PLUGINSDIR\dbmcp-upgrade"
+    File /oname=dbmcp-client.exe "@{MAINBINARYSRCPATH}"
+    File /oname=dbmcp.exe "@{DBMCP_SERVER_SOURCE}"
+    dbmcp_upgrade_retry:
+    ClearErrors
+    ExecWait '$\"$PLUGINSDIR\dbmcp-upgrade\dbmcp-client.exe$\" --install-bundled-server $\"$APPDATA\@{BUNDLEID}$\" $\"$INSTDIR$\" $\"$DbmcpOldDirectory$\" $\"$LOCALAPPDATA\@{BUNDLEID}\logs\installer-migration.log$\"' $0
+    @{If} @{Errors}
+      StrCpy $0 2
+    @{EndIf}
+    @{If} $0 != 0
+      MessageBox MB_RETRYCANCEL|MB_ICONSTOP "MCP Server upgrade failed. Your data and recovery snapshots are retained. See $LOCALAPPDATA\@{BUNDLEID}\logs\installer-migration.log for details." /SD IDCANCEL IDRETRY dbmcp_upgrade_retry
+      StrCpy $DbmcpMarker "MCP Server upgrade failed; installation incomplete; retry the installer"
+      Call DbmcpMigrationError
+    @{EndIf}
+    SetOutPath $INSTDIR
+  !endif
+FunctionEnd
+
 Function DbmcpMigrationError
   Call DbmcpLogMigration
   SetErrorLevel 2
@@ -223,7 +244,7 @@ FunctionEnd
 !macroend
 `);
 
-export async function windowsInstaller(dir) {
+export async function windowsInstaller(dir, serverExecutable) {
   const cache = join(root, ".cache/build-tools/tauri-cli-2.12.4-installer.nsi");
   await mkdir(join(root, ".cache/build-tools"), { recursive: true });
   let template = await readFile(cache).catch(() => null);
@@ -273,12 +294,21 @@ export async function windowsInstaller(dir) {
 `),
   );
   replace(
+    '  !insertmacro CheckIfAppIsRunning "$INSTDIR\\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"\n\n  ; Copy main executable',
+    '  !insertmacro CheckIfAppIsRunning "$INSTDIR\\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"\n  Call DbmcpUpgradeBundledServer\n\n  ; Copy main executable',
+  );
+  replace(
     "  ; Create uninstaller\n",
     "  Call DbmcpRemovePreviousInstallation\n\n  ; Create uninstaller\n",
   );
   const path = join(dir, "installer.nsi");
   const hookPath = join(dir, "installer-hooks.nsh");
   await writeFile(path, content);
-  await writeFile(hookPath, hooks);
+  await writeFile(
+    hookPath,
+    (serverExecutable
+      ? `!define DBMCP_BUNDLED_SERVER\n!define DBMCP_SERVER_SOURCE "${serverExecutable}"\n`
+      : "") + hooks,
+  );
   return { template: path, installerHooks: hookPath };
 }
