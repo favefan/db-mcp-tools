@@ -1,6 +1,6 @@
 # Changelog
 
-记录面向用户和贡献者的重要变更，按版本倒序排列。
+Notable changes for users and contributors, listed from newest to oldest.
 
 ## [Unreleased]
 
@@ -8,144 +8,144 @@
 
 ### Changed
 
-- “环境”改称“配置”，统一 MCP Server 命名，侧栏底部使用配置快捷菜单，完整管理移入“配置与 MCP Server”。
-- 精简说明和面板通知，必要说明使用悬浮提示；修正折叠侧栏、主题及表单对齐，重排连接方式和删除按钮。
-- 本机托管统一管理启动、接管和停止，保留手动启动、停止与重启；HTTP 配置保留 MCP Server 独立运行，包括回环地址。
-- 移除桌面系统服务操作区，仅有可用新版程序时显示“升级 MCP Server”。
-- 首次部署和日常启动不再走升级备份流程，取消定时备份；保留显式升级、恢复和结构迁移安全快照。
+- Renamed environments to configurations, standardized MCP Server terminology, added a sidebar quick-switch menu, and moved full management into Configurations & MCP Server.
+- Simplified help text and panel notifications, moved necessary explanations to tooltips, corrected collapsed sidebar and form alignment, and rearranged connection options and the delete action.
+- Unified local MCP Server startup, attachment, and shutdown while retaining manual start, stop, and restart. HTTP connections, including loopback addresses, leave the MCP Server running independently.
+- Removed desktop system service controls; the MCP Server upgrade action now appears only when a newer executable is available.
+- Removed upgrade backups from initial deployment and ordinary startup, and removed scheduled backups. Explicit upgrades, restores, and schema migrations retain safety snapshots.
 
 ## [1.0.10] - 2026-11-11
 
 ### Added
 
-- 初始自带 `default` 环境，支持命名 Profile 与唯一当前会话；本机托管、已有 Server 作为互斥连接方式。
-- 每个环境独立保存凭据、主题、通知、关闭行为和自动轻量模式；系统登录自启动共用。
-- 本机 Server 随客户端启停选项，进入环境启动，切走或真正退出时停止本次启动实例。
-- Go 本机部署信息查询、可用回环端口分配及进程实例身份校验。
+- An initial `default` environment, named profiles, and a single active session with mutually exclusive local management and existing MCP Server connections.
+- Per-profile credentials, theme, notifications, close behavior, and automatic lightweight mode; system login startup remains shared.
+- An option to start a local MCP Server on profile activation and stop the instance started by the client on switching or exit.
+- Go deployment metadata queries, available loopback port allocation, and process instance identity checks.
 
 ### Changed
 
-- 切换环境清理业务缓存、事件订阅与通知，拒绝进行中操作和旧会话请求。
-- 统一窗口与托盘退出流程；停机失败可重试或保留 Server 退出。
-- 旧连接迁移为 `default` 环境，保留部署地址、数据、身份和偏好，默认关闭随客户端启停。
+- Profile switching clears business caches, event subscriptions, and notifications, and rejects switching during active operations or requests from stale sessions.
+- Unified window and tray exit handling, with retry or exit-without-stopping options if shutdown fails.
+- Migrated legacy connections into `default` while retaining deployment addresses, data, identity, and preferences; client-managed startup was disabled by default.
 
 ## [1.0.9] - 2026-11-11
 
 ### Added
 
-- 前端预览、Server / CLI、完整桌面的开发指引，以及贡献和安全说明。
-- 独立桌面开发配置与 `dev:desktop` 命令，隔离开发档案、单实例身份和 debug 凭据。
-- 仅 Windows x64 的 GitHub 基础检查、手动未签名打包及版本标签触发的 Release 发布工作流。
+- Development instructions for frontend preview, MCP Server / CLI, and full desktop, plus contribution and security guidance.
+- An isolated desktop development configuration and `dev:desktop` command with separate profiles, single-instance identity, and debug credentials.
+- Windows x64 GitHub checks, optional manual unsigned packaging, and version-tag-triggered release publication.
 
 ### Changed
 
-- 统一 Node 24 环境要求和 API 契约生成后的格式化。
-- 数据库测试动态分配宿主端口，明确失败、跳过与清理结果；服务和提权测试改为显式传入构建程序。
-- 使用贡献者自己的 Git 身份，精简当前使用、开发和架构文档。
+- Standardized the Node 24 requirement and formatting after API contract generation.
+- Database tests dynamically allocate host ports and report failures, skips, and cleanup results. Service and elevation tests accept explicit executable paths.
+- Standardized the use of contributors' own Git identities and simplified usage, development, and architecture documentation.
 
 ## [1.0.8] - 2026-11-10
 
 ### Added
 
-- 访问日志请求详情抽屉，展示 SQL、精确参数、执行摘要、Mask 匹配和关联事件，支持切换、复制 ID 与单次 JSON 导出。
-- Server 加密保存请求详情，独立于审批执行载荷和结果缓存，按保留期清理。
+- An access log request drawer showing SQL, exact parameters, execution summaries, Mask matches, and related events, with adjacent navigation, ID copying, and individual JSON exports.
+- Encrypted request history in the MCP Server, separate from approval execution payloads and result caches, with retention cleanup.
 
 ### Changed
 
-- 新建策略默认限额为 5000 行 / 10 MiB，连接 TLS 默认关闭。
-- 已设置密码显示固定六点提示，页面和弹窗初始焦点保持中性。
+- New policies default to 5000 rows / 10 MiB; connection TLS defaults to off.
+- Stored passwords use a fixed six-dot indicator; pages and dialogs open with neutral focus.
 
 ### Fixed
 
-- 访问日志通知时序，避免列表刷新早于审计写入。
+- Access log notification timing so lists do not refresh before audit records are persisted.
 
 ## [1.0.7] - 2026-11-10
 
 ### Changed
 
-- 新建实例、绑定和模板不再预置 Mask，规则由用户手动添加或显式复制模板。
-- 移除独立返回值内容检测，统一使用用户配置的 Mask 正则规则。
+- New instances, bindings, and templates start without Mask rules; users add rules manually or explicitly copy a template.
+- Removed separate result content detection in favor of user-configured Mask regular expressions.
 
 ### Fixed
 
-- 清理登记审批后残留的旧自动状态备注，保留自定义备注和授权。
-- 实例弹窗与登记表单底部内容裁切。
+- Removed legacy automatic status notes after registration approval while preserving custom notes and grants.
+- Clipped content at the bottom of instance dialogs and registration forms.
 
 ## [1.0.6] - 2026-11-10
 
 ### Changed
 
-- 本机 Server 启停按钮依据所选目标的实际状态启用，统一启动、停止、重启的语义色。
-- 统一备份页面间距，固定页面标题与弹窗标签，仅内容区域滚动。
+- Local MCP Server controls use the selected target's actual status and consistent start, stop, and restart colors.
+- Unified backup page spacing, fixed page headers and dialog tabs, and confined scrolling to content areas.
 
 ### Fixed
 
-- 停止失败时错误切换为已停止状态。
-- 列表、备份展开和对象树滚动导致的宽度跳动。
+- Incorrectly showing a stopped state after a stop failure.
+- Width shifts caused by scrolling lists, expanded backups, and object trees.
 
 ## [1.0.5] - 2026-11-10
 
 ### Fixed
 
-- Server 升级提示移入本机设置，失败后提供原位重试，成功后清除旧提示。
-- 统一长文本通知、操作间距和小窗口布局。
+- Moved MCP Server upgrade prompts to local settings, with inline retry after failure and prompt cleanup after success.
+- Standardized long notifications, action spacing, and small-window layouts.
 
 ## [1.0.4] - 2026-11-10
 
 ### Changed
 
-- Windows 默认安装目录改为无空格的 `db-mcp-tools`，保留应用身份。
+- Changed the default Windows installation directory to `db-mcp-tools` without spaces, while retaining application identity.
 
 ### Added
 
-- 旧安装目录迁移、快捷方式和自启动目标修正，保留用户档案与独立 Server 数据。
-- 安装迁移日志与复制中断后的重试入口。
+- Migration from the legacy installation directory, with corrected shortcuts and startup targets while preserving profiles and independent MCP Server data.
+- Installer migration logs and retry after interrupted copying.
 
 ## [1.0.3] - 2026-11-10
 
 ### Added
 
-- 受管本机 Server 的升级与重连协调，最低版本检查及旧接口诊断。
+- Coordinated upgrades and reconnection for managed local MCP Servers, minimum version checks, and legacy API diagnostics.
 
 ### Changed
 
-- 统一按钮、表格、列表和通知组件；固定实例、审批与设置标签栏。
-- Mask 从空白规则开始编辑，示例值仅作为输入提示。
+- Unified buttons, tables, lists, and notifications; fixed instance, approval, and settings tab bars.
+- Mask editors start with empty rules; examples appear only as placeholders.
 
 ### Fixed
 
-- 更新客户端后仍连接旧稳定运行程序的问题。
-- 小窗口焦点框与内容布局。
+- Connecting to an old stable runtime executable after updating the client.
+- Focus outlines and content layout in small windows.
 
 ## [1.0.2] - 2026-11-10
 
 ### Added
 
-- 按数据库引擎层级选择库、模式、表和列，支持对象树多选与键盘操作。
-- 未保存连接的目录发现，默认连接数据库与授权范围分离。
+- Database-specific selection of databases, schemas, tables, and columns, with object tree multiselect and keyboard navigation.
+- Catalog discovery for unsaved connections, separating the default connection database from authorized resources.
 
 ### Changed
 
-- 资源键增加数据库限定，对象发现、SQL 检查和执行前重检统一授权。
+- Added database-qualified resource keys and unified authorization for discovery, SQL checks, and pre-execution rechecks.
 
 ## [1.0.1] - 2026-11-10
 
 ### Added
 
-- 实例支持单个、部分和全部数据库范围，MCP 增加数据库发现。
-- 按数据库分池，共享实例并发上限；审批和恢复绑定精确数据库。
+- Single, selected, and all-database scopes for instances, plus MCP database discovery.
+- Per-database connection pools sharing the instance concurrency limit; approvals and resumption bind to an exact database.
 
 ### Changed
 
-- 兼容已有单库配置，前端支持范围勾选和结构切换。
+- Retained existing single-database configurations and added frontend scope selection and structure switching.
 
 ## [1.0.0] - 2026-11-09
 
 ### Added
 
-- 独立 Go Server、管理 CLI、STDIO Bridge 和 Tauri / React 桌面管理。
-- 数据库实例、实体凭据、统一权限、SQL 分类、写入审批、Mask、限额和审计管线。
-- PostgreSQL、MySQL、SQL Server 与可选 DM8 驱动。
-- Codex / Claude Code 配置集成、通用 MCP 配置导出、审批通知和托盘。
-- 本机后台进程与系统服务管理、升级迁移、备份恢复、日志诊断和轻量模式。
-- 独立 Server、纯客户端和携带 Server 两种客户端安装包。
+- A standalone Go MCP Server, management CLI, STDIO Bridge, and Tauri / React desktop client.
+- Database instances, entity credentials, unified permissions, SQL classification, write approvals, Mask, limits, and auditing.
+- PostgreSQL, MySQL, SQL Server, and optional DM8 drivers.
+- Codex / Claude Code configuration integration, generic MCP configuration export, approval notifications, and a system tray.
+- Local background processes and CLI system services, upgrades and migrations, backups and recovery, diagnostics, and lightweight mode.
+- Standalone MCP Server packages and client installers with or without a bundled MCP Server.

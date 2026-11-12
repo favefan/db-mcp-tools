@@ -1,105 +1,103 @@
-# 客户端体验、打包与服务管理
+# Desktop behavior, packaging, and lifecycle
 
-## 1. CC Switch 风格的具体落地
+## 1. Desktop layout
 
-参考 CC Switch 的灰色侧栏、白色主内容、橙色主要动作、细边框、横向卡片、低噪声状态与紧凑表单，不借用其供应商业务结构。
+CC Switch informs the gray sidebar, light main area, orange primary actions, thin borders, horizontal cards, quiet status indicators, and compact forms. Its provider business model is not reused.
 
-| 区域     | 本产品设计                                                                     |
-| -------- | ------------------------------------------------------------------------------ |
-| 窗口     | 初始 1120×760，最小 960×640；无系统标题栏，52px 应用工具栏提供拖动和窗口操作   |
-| 左侧栏   | 展开 200px，收起 64px；贯穿窗口，仅一处品牌；设置入口在底部，审批数量徽标      |
-| 侧栏底部 | 唯一当前配置、连接状态与配置管理入口；实际服务控制放设置页                     |
-| 页面标题 | 图标、标题、简短计数；右侧一个主要操作，例如“新建实例”                         |
-| 列表     | 默认横向卡片，名称、类型、地址、状态、最近请求与少量操作；次要操作放菜单       |
-| 状态     | 已连接、未连接、停用、等待审批等语义色；文字与图标同时表达，不只用颜色         |
-| 详情     | 标题保留对象上下文，下方标签页；复杂设置分组展开，不在首页堆参数               |
-| 通知     | 成功用简短 Sonner 提示；连接失败提供重试或设置入口；系统审批通知点击打开待审批 |
-| 空状态   | 提供一个明确下一步；断开连接时显示当前配置，禁止把旧缓存当实时状态             |
-| 主题     | 跟随系统 / 浅色 / 深色；共用主题 token，不按页面独立定义颜色                   |
+| Area           | Design                                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Window         | Initial 1120×760, minimum 960×640; no system title bar; 52px toolbar for dragging and window controls                  |
+| Sidebar        | 200px expanded, 64px collapsed, full height, one brand mark, settings entry and approval count                         |
+| Sidebar footer | One active configuration, connection status, and quick switching; process controls live in settings                    |
+| Page header    | Icon, title, short count, and one primary action such as adding an instance                                            |
+| Lists          | Horizontal cards with name, engine, endpoint, status, recent request, and a few actions; secondary actions use a menu  |
+| Status         | Connected, disconnected, disabled, or pending with both text and icons as well as semantic colors                      |
+| Details        | Object context in the header, tabs beneath, advanced settings grouped rather than exposed on the home page             |
+| Notifications  | Concise Sonner toasts; connection errors offer retry / settings; system approval notifications open pending approvals  |
+| Empty state    | One clear next step; disconnected views identify the active configuration without presenting stale caches as live data |
+| Theme          | System, light, or dark using shared tokens                                                                             |
 
-界面尺寸统一使用 4 / 8 / 12 / 16 / 24 / 32px 间距。主区左右 24px，列表间距 8px，卡片内边距 12×16px；按钮与输入框默认 32px 高、13px 文字，次要说明 12px。控件圆角 5px，分组和弹窗圆角 8px。列表按内容自然增高；实例编辑窗口保持固定尺寸、位置和底部动作区，标签页在内部滚动。普通确认窗口从稳定的顶部位置展开，避免每次内容变化都重新居中。
+Spacing uses 4 / 8 / 12 / 16 / 24 / 32px increments: 24px main horizontal padding, 8px list gaps, 12×16px card padding, 32px controls, 13px body and 12px secondary text. Control corners are 5px; groups and dialogs use 8px. Lists grow naturally. Instance editors keep stable dimensions, position, and footer actions, with internal tab scrolling. Confirmation dialogs expand from a stable top position rather than recentering as content changes.
 
-1.0.6 由公共 Page 固定五个主页面的标题和窗口控件，根窗口不产生滚动范围，仅内容区独立滚动；内容、弹窗和活动 Tab 使用 `scrollbar-gutter: stable` 预留位置，展开恢复表单、增加备份记录时不挤动布局。公共 Stack 负责操作／表格／展开内容之间的 16px 间距，业务组件不添加孤立的补丁 margin。
+Page fixes headers and window controls across the five main pages. The root window does not scroll; content does. Content, dialogs, and active tabs reserve `scrollbar-gutter: stable` so expanded restore forms and backup rows do not shift layout. Stack owns 16px gaps between actions, tables, and expanded content, avoiding local margin patches.
 
-本机托管以所选程序和数据目录的 Go `run status` 为准，初次加载、切换目标、启停操作后及页面活动期间刷新；HTTP 已连接状态不能替代本机状态。运行中禁止再次启动，停止时禁止停止和重启，未知或读取失败时三项均不可用。可用按钮分别为启动绿色、停止红色、重启黄色，禁用统一灰色。启停／状态和服务操作的 JSON 结果可为顶层或嵌套 status，均更新同一目标的状态缓存。
+Local controls use Go `run status` for the selected executable and directory, refreshed on initial load, target changes, lifecycle operations, and while the page is active. HTTP connection state is not local process state. Running disables start; stopped disables stop / restart; unknown or failed status disables all three. Enabled start is green, stop red, restart yellow, and disabled controls gray. Top-level or nested status JSON updates the same target cache.
 
-设置分类为通用、配置与 MCP Server、Agent 接入、实例模板、数据管理。侧栏底部弹出当前配置的快捷切换菜单，菜单的设置入口打开“配置与 MCP Server”。完整配置列表内用强调色标记当前配置。
+Settings categories are General, Configurations & MCP Server, Agent integration, Instance templates, and Data management. The sidebar footer opens a nearby quick-switch menu. Its settings entry opens Configurations & MCP Server, whose full list highlights the active profile with the accent color. Connection options use compact radio controls; deletion is separated on the left from cancel / save.
 
-关闭行为、主题、通知和自动轻量模式属于当前配置，原子保存到 profiles.json；系统登录自启动共用。真正退出或切走配置时停止当前本机托管进程，HTTP 连接的已有 MCP Server 继续运行。
+Close behavior, theme, notifications, and automatic lightweight mode belong to the active profile and save atomically in `profiles.json`. Login startup is shared. Switching away or truly exiting stops the active locally managed MCP Server; existing HTTP-connected MCP Servers continue running.
 
-设置中的轻量模式开关控制自动释放：关闭主窗口到托盘后先隐藏，持续关闭 3 分钟后销毁主窗口与 WebView，保留 Rust 管理连接和原生托盘。重新打开会取消计时；再次关闭重新计满 3 分钟。关闭自动开关也取消待执行的计时。托盘右键“轻量模式”是即时开关，勾选立即释放窗口，取消勾选立即重建并打开；其勾选表示当前实际状态，不修改自动偏好。打开时按相同配置重建，未保存表单不保留。官方单实例插件让开始菜单重复启动也能唤回主窗口。托盘右键菜单为“打开主窗口、轻量模式、导出诊断包、退出”，左键双击打开主窗口。NSIS 默认建立 `DB MCP Tools` 开始菜单目录，并在升级时修复缺失入口；显式 `/NS` 仍尊重不创建快捷方式的选择。
+Automatic lightweight mode initially hides a window closed to the tray, then destroys its window and WebView after three minutes while retaining Rust's Admin connection and the native tray. Reopening cancels the timer; closing again restarts it. Disabling the preference cancels pending release. The tray's lightweight-mode checkbox is immediate: enabling releases the window; disabling recreates and opens it. It reflects current state without changing the automatic preference. Reopening restores the same configuration, not unsaved forms.
 
-轻量模式下 Rust 接手新增审批通知，沿用通知开关和前端已见请求集合去重；通知提示从托盘打开主窗口处理，避免销毁 WebView 后提醒中断。
+The official single-instance plugin lets a repeated Start menu launch restore the main window. The tray offers opening the window, lightweight mode, diagnostic export, and exit; double-click opens the window. NSIS creates a `DB MCP Tools` Start menu folder and repairs missing entries on upgrade, while explicit `/NS` still skips shortcuts.
 
-集中诊断独立于业务审计，断连时也可导出；路径、内容与限制见 [日志与诊断](diagnostics.md)。
+Rust handles new approval notifications during lightweight mode, respecting notification preferences and deduplicating against requests already seen by the frontend. Notifications direct users to reopen the window through the tray.
 
-使用 `pnpm --dir client preview:ui` 启动网页评审，地址为 `http://127.0.0.1:1420/`。演示数据仅在内存中，可浏览列表、编辑表单和切换设置，不连接真实数据库或写入 Agent 配置。演示适配只在显式的 Vite 开发模式加载，不参与生产身份和权限判断。
+Diagnostics are separate from business audit and remain exportable while disconnected. See [Diagnostics](diagnostics.md).
 
-shadcn/ui + Radix 提供 Dialog、Sheet、Tabs、Select、Switch、Dropdown 等；Lucide 图标、React Hook Form + Zod 表单、TanStack Query 服务状态缓存；CodeMirror 仅用于 SQL 展示与规则模拟。V1 不引入图表库、拖拽框架和自建基础组件系统。
+For browser preview, run `pnpm --dir client preview:ui` and open `http://127.0.0.1:1420/`. In-memory fixtures support browsing and editing without connecting to databases or writing agent configuration. The adapter loads only in explicit Vite development mode and never participates in production authorization.
 
-前端布局采用以下结构：
+shadcn / Radix supply dialogs, sheets, tabs, selects, switches, dropdowns, popovers, and tooltips. Lucide supplies icons, React Hook Form / Zod forms, TanStack Query remote state, and CodeMirror SQL display / simulation. There is no charting or drag-and-drop framework or custom base component system.
 
 ```text
-┌──────────────┬─────────────────────────────────────────┐
-│ DB MCP Tools │ 数据库实例                  ＋ 新建实例 │
-│              ├─────────────────────────────────────────┤
-│ 实例         │ [PG] Development      已连接  [编辑] […] │
-│ 实体         │      127.0.0.1:5432 · 只读放行           │
-│ 待审批   2   │                                         │
-│ 日志         │ [MS] SQL Server Test  未连接  [编辑] […] │
-│ 设置         │      192.168.1.20:1433                   │
-│              │                                         │
-│ ● 本机运行中 │                                         │
-└──────────────┴─────────────────────────────────────────┘
+┌────────────────┬──────────────────────────────────────────┐
+│ DB MCP Tools   │ Database instances        + Add instance │
+│                ├──────────────────────────────────────────┤
+│ Instances      │ [PG] Development       Connected  [...]  │
+│ Entities       │      127.0.0.1:5432    Read allowed      │
+│ Approvals  2   │                                          │
+│ Logs           │ [MS] SQL Server Test   Disconnected [...]│
+│ Settings       │      192.168.1.20:1433                   │
+│                │                                          │
+│ default   ●    │                                          │
+└────────────────┴──────────────────────────────────────────┘
 ```
 
-## 2. 主要交互流程
+## 2. Main interactions
 
-### 首次启动
+### First launch
 
-初次启动创建未连接的 `default` 配置。编辑配置时选择本机托管或已有 MCP Server；携带包自动发现本机程序，纯客户端可选择独立安装的程序。
+First launch creates a disconnected `default` profile. The editor chooses local management or an existing MCP Server. Bundled packages discover the local executable; pure clients can select a separately installed one.
 
-新本机配置留空数据目录时自动创建独立目录，并分配可用回环端口；已有部署保留地址。启动后验证 server_id 和 API 版本。创建首个实例按“连接 → 测试 → 范围与策略 → 保存”完成；Mask 初始为空；用户可手动添加，或显式选择已有模板复制规则。
+A new local profile with an empty data path receives an isolated directory and available loopback ports. Existing deployments retain addresses. Startup verifies `server_id` and API version. Instance creation follows connection → test → scope / policy → save. Mask starts empty; add rules manually or explicitly copy a template.
 
-### 实例与实体
+### Instances and entities
 
-实例七个标签：连接、范围、权限、Mask、实体、记录、高级。范围用 Schema 树选择库 / Schema / 表 / 列；高级设置放连接池、超时、扩展能力和服务端诊断。已设置的连接密码用固定六个黑点表示，提示不进入提交值；输入新密码才替换。新建连接的 TLS 默认关闭。
+Instances have Connection, Scope, Permissions, Mask, Entities, Records, and Advanced tabs. The catalog tree selects databases / schemas / tables / columns. Advanced holds pooling, timeouts, extensions, and diagnostics. Stored passwords show six fixed dots, never submitted as a password; only new input replaces them. New connections default to TLS off.
 
-访问日志保持公共表格，每行“查看详情”或点击／键盘选择打开右侧固定宽度抽屉。抽屉复用 Radix Dialog 的非模态内容，列表位置、筛选与游标保持，标题／操作栏固定且仅抽屉正文滚动，可切换相邻日志与单次导出。页面、模态和抽屉初始聚焦容器，不自动强调任何输入框或按钮；显式操作与 Tab 焦点继续可用。
+Access logs use the shared table. Clicking a row or its detail action opens a fixed-width right drawer with non-modal Radix Dialog content. Filters, cursor, and list position remain; only drawer content scrolls, and title / actions stay fixed. Adjacent navigation and per-request export are available. Pages, dialogs, and drawers initially focus their container rather than an arbitrary control, while explicit and Tab focus remain.
 
-实体详情集中展示在各实例的有效资源、允许操作、审批方式和 Mask，附凭据状态与最近请求。顶部“禁用实体”立即影响后续请求与待执行审批；禁用不删除历史。
+Entity details show effective resources, operations, approval mode, and Mask per instance, plus credential state and recent requests. Disabling an entity immediately affects subsequent requests and pending execution without removing history.
 
-### 审批
+### Approvals
 
-卡片展示实体、实例、操作类型、目标表、时间与过期倒计时；详情展示 SQL、按需展开的参数和风险提示。主要动作“允许一次”，另有“拒绝”“记住规则”。记住规则必须展示实际授权范围；不提供含糊的“永久允许此 Agent 一切操作”。
+Cards show entity, instance, operation, target tables, time, and expiry countdown. Details show SQL, expandable parameters, and risk hints. The main action is allow once, alongside deny and remember rule. Remembered rules show actual scope; there is no blanket permanent grant for all agent actions.
 
-实体登记和 SQL 操作审批用不同类型标签。审批 API 成功只表示决策已记录，随后显示执行结果状态；不要把“批准成功”错误标为“数据库已执行成功”。
+Entity registrations and SQL approvals have separate type labels. API decision success means the decision was saved, not that database execution succeeded. Execution status is shown separately.
 
-### Mask 与规则模拟
+### Mask and simulation
 
-通过 Schema 选源字段 → 选择固定替换 / 保留字符 / NULL / 正则 / 禁止访问 → 输入示例 → 即时预览 → 保存。UI 展示实例规则与实体追加规则的来源和顺序。
+Select a source field → choose fixed replacement / partial retention / NULL / regex / denied access → enter a sample → preview → save. Display instance and entity rule provenance and ordering.
 
-规则模拟输入实体、实例与 SQL，展示允许 / 拒绝 / 待审批和命中原因，调用 MCP Server 的真实分析路径但不执行数据库语句。不要在 TypeScript 内再写一套权限判断。
+Simulation accepts entity, instance, and SQL, returning allow / deny / pending and matched reasons through actual MCP Server analysis without executing SQL. Do not duplicate policy decisions in TypeScript.
 
-## 3. 客户端通信和本机能力
+## 3. Communication and local integration
 
-React 只调用有类型的 API 封装；Tauri Rust 使用 `reqwest` 访问 Admin API，持有 keyring 凭据，转发状态事件。这样避免 WebView 里的跨域配置与长期管理员 Token 持久化。
+React uses typed API wrappers. Rust uses `reqwest` for Admin, holds keyring credentials, and forwards state events, avoiding WebView CORS configuration and persistent administrator tokens.
 
-Rust 仅提供窗口 / 托盘 / 通知、Admin 连接、文件对话框、MCP 配置安装、启动 Go CLI 和调用 OS 提权入口。命令参数结构化传递，不把路径拼进 shell 命令。服务安装提权由用户触发，前端不能传任意系统命令。
+Rust handles windows, tray, notifications, Admin connections, file dialogs, MCP configuration installation, and Go CLI invocation. Arguments are structured rather than interpolated into shell commands. The frontend cannot submit arbitrary system commands. Desktop system service entry points are not exposed.
 
-客户端只保存命名配置、管理员凭据的 keyring 引用和客户端偏好。每次只激活一个配置，本机托管负责启停；已有 MCP Server 通过 HTTP 连接，包括回环地址，均不控制进程。
+The client stores named profiles, keyring references, and preferences only. One profile is active at a time. Local management owns lifecycle; existing MCP Servers connected over HTTP, including loopback, remain independent.
 
-## 4. 三类分发产物
+## 4. Distribution packages
 
-“打包时可选包含 MCP Server”实现为明确的构建参数及两种安装包，不把选择留成一份含糊配置。
+Bundling the MCP Server is an explicit build choice with separate installers.
 
-| 产物               | 包含内容                         | 用途                                                     |
-| ------------------ | -------------------------------- | -------------------------------------------------------- |
-| 独立 MCP Server 包 | `dbmcp`、说明和第三方许可        | 无桌面部署，提供 MCP Server / CLI / Bridge / service     |
-| 纯客户端包         | Tauri 客户端，不含 Go 可执行文件 | 连接已有 MCP Server；可选择系统已安装的 `dbmcp` 管理本机 |
-| 携带 MCP Server 包 | 同一客户端 + 匹配平台的 `dbmcp`  | 首次安装即可运行本机 MCP Server，并可转为系统服务        |
-
-已实现的统一构建入口：
+| Package               | Contents                                     | Purpose                                                                    |
+| --------------------- | -------------------------------------------- | -------------------------------------------------------------------------- |
+| Standalone MCP Server | `dbmcp`, documentation, third-party licenses | Headless MCP Server / CLI / Bridge / optional CLI service management       |
+| Client only           | Tauri client, no Go executable               | Existing MCP Server connections or a separately installed local executable |
+| Bundled MCP Server    | Same client plus platform-matched `dbmcp`    | Local management immediately after installation                            |
 
 ```sh
 pnpm package:client --server=none --target=x86_64-pc-windows-msvc
@@ -107,98 +105,94 @@ pnpm package:client --server=bundled --target=x86_64-pc-windows-msvc
 pnpm package:server --platform=windows --arch=amd64
 ```
 
-Node 构建脚本先验证参数，`bundled` 模式编译 Go 并按 Tauri 的目标三元组命名 `binaries/dbmcp-<target-triple>[.exe]`，再生成覆盖配置；`none` 模式不设置 `externalBin`，也不编译 Go。基础配置不携带 MCP Server，避免误把测试残留带进纯客户端包。
+Node scripts validate arguments first. Bundled mode compiles Go as `binaries/dbmcp-<target-triple>[.exe]` and generates a Tauri override. Pure mode neither compiles Go nor includes `externalBin` resources. Base configuration excludes the MCP Server so stale test binaries cannot enter a pure client.
 
-| Tauri 目标                                               | Go 目标                             |
-| -------------------------------------------------------- | ----------------------------------- |
-| `x86_64-pc-windows-msvc`                                 | `windows/amd64`                     |
-| `aarch64-pc-windows-msvc`                                | `windows/arm64`，取决于目标驱动支持 |
-| `x86_64-apple-darwin` / `aarch64-apple-darwin`           | `darwin/amd64` / `darwin/arm64`     |
-| `x86_64-unknown-linux-gnu` / `aarch64-unknown-linux-gnu` | `linux/amd64` / `linux/arm64`       |
+| Tauri target                                             | Go target                                  |
+| -------------------------------------------------------- | ------------------------------------------ |
+| `x86_64-pc-windows-msvc`                                 | `windows/amd64`                            |
+| `aarch64-pc-windows-msvc`                                | `windows/arm64`, subject to driver support |
+| `x86_64-apple-darwin` / `aarch64-apple-darwin`           | `darwin/amd64` / `darwin/arm64`            |
+| `x86_64-unknown-linux-gnu` / `aarch64-unknown-linux-gnu` | `linux/amd64` / `linux/arm64`              |
 
-Windows 初期输出 NSIS，macOS 输出 DMG，Linux 输出 deb / AppImage；使用原生平台构建 Tauri，Go 单独交叉编译并检查驱动限制。DM8 不支持或许可不足的架构必须标明，不宣称全平台都有完整四库驱动。
+Windows produces NSIS, macOS DMG, and Linux deb / AppImage. Tauri requires native builds; Go can cross-compile subject to drivers. Unsupported or unlicensed DM8 targets must be identified rather than claiming all four drivers everywhere.
 
-Windows 1.0.4 默认安装到 `%LOCALAPPDATA%\db-mcp-tools`，显示名称和开始菜单仍为 `DB MCP Tools`。已登记的旧 `DB MCP Tools` 应用目录迁移到同父目录的 `db-mcp-tools`；自定义目录继续使用，命令行 `/D` 可显式选择目标。目标须为空，或带有本次安装器匹配源路径的中断重试标记。先复制新包，再调用原卸载器 `/S /UPDATE` 仅移除旧程序清单并保留数据，最后登记新位置、修正快捷方式与自启动命令。未知文件留在旧目录，不递归清理。应用目录不存业务状态，MCP Server 稳定运行目录及外部 Agent 配置不随应用目录移动。
+Since Windows 1.0.4, the default application path is `%LOCALAPPDATA%\db-mcp-tools` while the display name and Start menu remain `DB MCP Tools`. Registered legacy paths migrate to `db-mcp-tools` under the same parent. Custom paths remain; `/D` explicitly selects a target. The target must be empty or carry a matching interrupted-migration marker. The installer copies the new package, invokes the old uninstaller with `/S /UPDATE` to remove known program files while retaining data, registers the new location, and fixes shortcuts / startup. Unknown old files are not recursively removed. MCP Server runtime and external agent configuration do not move with the application directory.
 
-实现使用 Tauri 支持的 `nsis.template` / `installerHooks`：固定 CLI 2.12.4 官方模板及 SHA256，由 MJS 生成少量适配，不维护整份模板副本。锁定模板变更时必须重新审查插入位置。迁移过程写入客户端集中目录下的 `installer-migration.log`，一键诊断导出会收集它。
+The implementation uses Tauri `nsis.template` / `installerHooks` with the pinned CLI 2.12.4 official template and SHA256. MJS generates small adaptations without maintaining a whole copied template. Template updates require reviewing insertion points. Migration logs go to the centralized client log directory and are included in diagnostic exports.
 
-发布清单包含应用 / MCP Server 版本、Admin API 主版本、架构、驱动能力、文件哈希和第三方许可。代码签名证书与自动更新发布渠道不在当前仓库中虚构；没有证书时标记为未签名本地构建，后续配置不妨碍先完成本地开发。
+Manifests include application / MCP Server versions, Admin API major, architecture, drivers, hashes, and third-party licenses. No signing certificate or automatic-update channel is assumed; unsigned builds are marked accordingly.
 
-DM8 默认采用官方原生 Go 驱动；不能因为用户提供的指南介绍 ODBC 就让所有用户安装 ODBC。若原生驱动实际版本或目标平台不满足要求，再评估 ODBC 备选，届时明确包含 DM ODBC 动态库、平台驱动管理器和重新分发条件，不同时提供两套默认安装流程。
+DM8 uses the native Go driver where enabled. ODBC is not required merely because reference documentation mentions it. If native support is insufficient, assess ODBC separately with explicit dynamic libraries, platform driver manager, and redistribution terms rather than maintaining two default installation paths.
 
-纯客户端仍可管理已有本机程序，但不会自动联网下载 MCP Server。STDIO 接入需要本机 `dbmcp bridge`：纯客户端可使用用户选择的已有程序；如果没有，生成支持认证的 HTTP 配置或提示先安装独立 MCP Server / Bridge。不能在“纯客户端”包里暗中塞入同一个 Go 可执行文件。
+Pure clients do not automatically download the MCP Server. STDIO needs a local `dbmcp bridge`, either selected separately or installed first. Otherwise generate supported authenticated HTTP configuration. Do not silently include Go in a client-only package.
 
-## 5. MCP Server 生命周期与系统服务
+## 5. MCP Server lifecycle and services
 
-### 统一控制权
+### Ownership
 
-Go `internal/runtime` 封装后台进程及 `kardianos/service`，桌面端调用相同 CLI。`service status --json` 和 `run status --json` 返回结构化状态；不在 Rust 中再实现 SCM / systemd / launchd 逻辑。
+Go `internal/runtime` owns background process and `kardianos/service` integration. Desktop local operations call the same CLI. `run status --json` and optional CLI `service status --json` return structured status; Rust does not reimplement SCM / systemd / launchd.
 
-运行模式区分：
+| Mode                   | Startup                                         | After client exit                                                      | Restart owner                     |
+| ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------- |
+| Foreground             | `dbmcp serve`                                   | Independent of desktop; follows the terminal                           | User                              |
+| Independent background | `dbmcp run start`                               | Continues, already detached from the terminal                          | User; no custom daemon supervisor |
+| Locally managed        | Start or attach when activating a local profile | Stops on true exit or switching away; tray / lightweight mode continue | Client                            |
+| OS service             | Start after `dbmcp service install`             | Continues under the system service manager                             | OS service policy                 |
 
-| 模式         | 启动方式                       | 客户端退出后的行为                               | 谁负责重启                |
-| ------------ | ------------------------------ | ------------------------------------------------ | ------------------------- |
-| 前台         | `dbmcp serve`                  | 与桌面无关，随终端生命周期                       | 使用者                    |
-| 独立后台进程 | `dbmcp run start`              | 继续运行；CLI 启动时就完成平台所需的脱离终端处理 | 使用者；V1 不自造守护进程 |
-| 本机托管     | 当前本机配置进入时启动或接管   | 真正退出或切走时停止；托盘与轻量模式继续         | 客户端                    |
-| OS 服务      | `dbmcp service install` 后启动 | 继续运行，由系统服务管理器控制                   | OS 服务策略               |
+Tauri `externalBin` is a distribution mechanism, not a process lifetime guarantee. The executable is prepared in a stable runtime directory; Go startup does not depend on WebView, shell plugin child handles, or UI job lifetime. Closing to tray retains the process; true exit stops only the active locally managed instance.
 
-Tauri `externalBin` 是分发机制，不作为 MCP Server 永久存活的保证。启动前把匹配版本程序放到稳定运行目录，Go 后台启动不依赖 WebView、shell 插件子进程句柄或 UI 的 Job 生命周期。关闭窗口可进入托盘；真正退出只停止当前本机托管实例。
+`server_id`, data directory, and health responses identify the target. Local process `instance_id` is checked on stop; PID is only supporting information. Port conflicts never justify killing unrelated processes. The desktop exposes no system service operations; connect to services through existing MCP Server HTTP configurations. Each data directory has one state owner.
 
-状态用 server_id、数据目录及健康响应核对目标；本机实例另校验每次启动的 instance_id，PID 只辅助定位，不因端口占用就杀掉其他进程。桌面不提供系统服务操作入口；系统服务通过已有 MCP Server 的 HTTP 配置连接。每个数据目录只允许一个状态库所有者。
+Local management owns startup and shutdown by default. Existing HTTP connections never control processes, regardless of loopback address. Foreground processes remain controlled by their original terminal.
 
-本机托管默认管理启动与停止；已有 MCP Server 无论监听何种 HTTP 回环地址都只连接。前台进程仍由原终端控制。
+### Platforms and directories
 
-### 平台和数据目录
+| Platform | Personal data / stable executable                              | Optional CLI service                                                              | Permissions and persistence                                                                                                                                |
+| -------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows  | `%LOCALAPPDATA%\DBMCP\server`, executable under `runtime/`     | SCM, default `NT AUTHORITY\LocalService`; system data under `%PROGRAMDATA%\DBMCP` | Installation / removal and lifecycle require system authorization; ACLs are restricted to the manager, service account, and required system administrators |
+| macOS    | `~/Library/Application Support/DBMCP/server`                   | Current-user LaunchAgent; system LaunchDaemon when explicitly configured          | Independent of UI exit; login / boot behavior depends on selected service mode                                                                             |
+| Linux    | `$XDG_DATA_HOME/dbmcp/server` or `~/.local/share/dbmcp/server` | Current-user systemd; dedicated non-root account for system mode                  | UI exit has no effect; logout persistence depends on linger; system data uses `/var/lib/dbmcp`                                                             |
 
-| 平台    | 普通本机数据 / 稳定运行程序                                    | CLI 系统服务（可选）                                                          | 权限与持久性                                                                                  |
-| ------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Windows | `%LOCALAPPDATA%\DBMCP\server`，程序在其 `runtime/` 下          | Windows SCM，默认 `NT AUTHORITY\LocalService`；系统数据 `%PROGRAMDATA%\DBMCP` | 安装、卸载及服务启停需要系统授权；目录 ACL 只给指定管理用户、服务账户与必要系统管理权限       |
-| macOS   | `~/Library/Application Support/DBMCP/server`                   | 当前用户 LaunchAgent                                                          | 不因退出 UI 停止；通常在登录时运行。需要开机未登录运行时提供显式的系统 LaunchDaemon 安装选项  |
-| Linux   | `$XDG_DATA_HOME/dbmcp/server` 或 `~/.local/share/dbmcp/server` | 当前用户 systemd service                                                      | UI 退出不影响；退出登录后的运行取决于 linger。系统级模式用专用非 root 用户及 `/var/lib/dbmcp` |
+Configuration stores arguments and deployment paths, never service command-line passwords. Actual account, permission, and user-service support depends on the pinned library and platform testing; do not default every OS to elevation for superficial consistency.
 
-用户配置只存启动参数和部署路径，不把密码放在服务命令行中。具体服务账户、权限、用户服务支持，以锁定库和实机验证为准；不为了表面跨平台一致而把所有平台都默认提权运行。
+CLI conversion to a system service stops the managed process, snapshots state, explicitly selects the target path and account permissions, migrates executable / settings / keys to a stable location, installs, starts, and validates `server_id`. Failures retain original data and recovery paths rather than creating two independent running state stores.
 
-把普通进程转为 Windows 系统服务或其他系统级模式时：停止当前受管进程 → 一致性备份 → 明确迁移目标数据目录与账户权限 → 将程序、配置和密钥迁到稳定目录 → 安装服务 → 启动并校验 server_id。失败保留原数据和恢复入口，不创建两个各自运行的库。
+Explicit upgrade stops, backs up, deploys, migrates, starts, and checks health. Versioned executable directories avoid overwriting running Windows executables. Bridge configuration points to the stable local launcher, not temporary unpacking paths. Reconnect agents when required; no background auto-upgrade daemon is introduced.
 
-升级采用停止受管 MCP Server → 备份 → 部署新版本 → 迁移 → 启动并健康检查。运行程序使用独立版本目录，避免覆盖正被 Windows 服务占用的 exe；Bridge 配置指向稳定的本机入口，不写进临时解包目录。升级前后更新此入口，必要时让 Agent 重连；不建设后台自动升级守护器。
+Service uninstall removes registration and retains data by default. Client-only uninstall does not touch remote MCP Servers. Client login startup and MCP Server service startup remain independent.
 
-服务卸载只移除注册项，默认保留业务数据；桌面卸载后服务和程序的保留 / 移除要明确呈现。纯客户端卸载不触碰其连接的远端 MCP Server。客户端登录自启与 MCP Server 系统自启是两个独立选项。
+## 6. Agent configuration integration
 
-## 6. MCP 配置文件集成
+Installation selects the target client and user / project scope, previews paths and changes, issues a registration credential, backs up the target, merges only this tool's entry, and saves atomically. The entity is created on first MCP access and authorized separately. Failures revoke unused credentials and preserve original files.
 
-安装流程：选目标客户端及用户 / 项目作用域 → 预览目标路径和差异 → 登记实体并签发独立凭据 → 备份目标文件 → 定点合并 → 原子替换 → 显示连接结果。失败撤销未使用凭据，并保留原配置。
+- Claude Code changes only this tool's `mcpServers` entry in JSON. Codex uses `toml_edit` for `[mcp_servers.<entry>]`, preserving unrelated configuration and comments, and does not emit an unsupported `type` field.
+- STDIO arguments carry a restricted Bridge credential file path, not a token. HTTP uses each target client's supported authentication format.
+- Removal affects only this tool's entries. Same-name unrelated entries conflict rather than replacing the whole MCP collection.
+- Use same-directory temporary files, mature file libraries, backups, and a pre-write modification check. JSON preserves unrelated values; TOML preserves unrelated sections / comments. External line endings are retained rather than forced to repository LF.
+- Pass paths, including spaces and non-ASCII characters, through system APIs as arguments rather than shell concatenation. Credentials and backups keep private permissions.
 
-- Claude Code JSON 只修改本工具的 `mcpServers` 条目；Codex 用 `toml_edit` 修改 `[mcp_servers.<本工具条目>]`，保留其他配置和注释，不输出上游已确认无效的 `type` 字段。
-- STDIO 配置传递 Bridge 的受限凭据文件路径，不把 Token 放入提示词或 CLI 参数。HTTP 认证格式按目标客户端实际支持生成，不盲目复用一份 JSON。
-- 移除时只删除本工具创建的条目；存在同名非本工具条目先展示冲突，不覆盖整个 MCP 集合。
-- 使用同目录临时文件、成熟文件库和一次备份；写前检查文件是否已被外部修改。JSON 保证无关字段和值保留，TOML 尽量保持注释与格式；外部配置原有换行风格可保留，仓库 LF 规则不强行格式化用户配置文件。
-- 路径交给系统 API；含空格和中文路径作为参数传递，不通过 shell 拼接。凭据文件和备份继承适当的私密权限。
+Other clients use generic MCP export rather than duplicating CC Switch's complete compatibility matrix. Installation / update occurs only on explicit request and never continuously rewrites external files.
 
-其他客户端先提供通用配置导出，不在 V1 复制 CC Switch 全部客户端兼容矩阵。配置安装只在用户主动选择“安装 / 更新”时执行，不持续抢写外部文件。
+### Target files and conflicts
 
-### Agent 配置接入
+Desktop integration supports Codex / Claude Code user and project scope, HTTP / STDIO, entry previews, and removal previews. Codex inherits `CODEX_HOME`, defaulting to `~/.codex/config.toml`; projects use `.codex/config.toml` and must be trusted. Claude Code defaults to `~/.claude.json` and project `.mcp.json`, with its own initial project MCP confirmation.
 
-桌面设置已提供 Codex / Claude Code 用户及项目作用域、HTTP / STDIO 选择、目标条目预览和移除预览。Codex 用户配置读取继承的 CODEX_HOME（未设置则为 ~/.codex/config.toml），项目为 .codex/config.toml；Claude Code 默认用户文件为 ~/.claude.json，项目为 .mcp.json。Codex 的项目配置需要受信任项目；Claude Code 的项目 MCP 首次需其自身确认。
+Rust calls Admin rather than calculating policy. Installation records exclude tokens. Updating this tool's entry revokes the previous credential; failures clean up new credentials.
 
-安装创建专用实体、凭据和绑定；Rust 只调用 Admin API，不计算策略。HTTP 认证按各客户端格式保存；STDIO 的命令参数仅传递私密凭据文件路径。安装记录不含 Token；更新自身条目后撤销旧凭据，失败清理新凭据并停用专用实体。
+TOML preserves comments with `toml_edit`. JSON retains unrelated fields / values with two-space formatting. Both retain LF / CRLF. Before writing, validate the preview fingerprint, save a restricted backup, sync a same-directory temporary file, and atomically replace. Other clients do not share the lock; this is optimistic conflict detection, not a lock on external editors. Removal requires an unchanged semantic hash; user-edited entries remain while their previous credential is revoked.
 
-TOML 使用 toml_edit 保留其他段落和注释；JSON 保留无关字段和值，重新排版为两空格；两者保留原 LF / CRLF。写前检查预览指纹、先存受限备份、同目录临时文件同步并原子替换。外部客户端不共享锁，因此这属于写入前的乐观冲突检查，不声称能锁住其他进程。移除只删除语义哈希仍一致的自身条目；用户已改写的条目保留，仅撤销原安装凭据。
+Formats follow the [Codex MCP documentation](https://developers.openai.com/codex/mcp), [Codex configuration reference](https://developers.openai.com/codex/config-reference), and [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
-配置格式依据实际读取的 [Codex MCP 官方文档](https://developers.openai.com/codex/mcp)、[Codex 配置参考](https://developers.openai.com/codex/config-reference) 与 [Claude Code MCP 文档](https://code.claude.com/docs/en/mcp)。
+### Stable runtime
 
-### 稳定运行目录
+`dbmcp runtime deploy` requires the data directory to be stopped, saves a consistent snapshot with matching keys, places the build in `runtime/versions/<version>-<hash>/`, writes `current.json`, and retains `previous.json`. `runtime/dbmcp[.exe]` forwards to the hash-verified executable. CLI services register the actual versioned executable so SCM owns the service process. Repeated deployment of the same build does not recopy it. Ordinary local startup uses `runtime prepare` for first-time setup without a backup or upgrade.
 
-已实现 `dbmcp runtime deploy`：要求数据目录停机，保存配套密钥的一致性快照，把当前构建放入 runtime/versions/<版本>-<内容哈希>/，写入 current.json 并保留 previous.json。runtime/dbmcp[.exe] 是固定入口，转发到已校验哈希的当前程序；服务直接注册版本目录中的程序，使 SCM 拥有真正的服务进程。重复部署同一构建不重复复制。
+On Windows, reopening state validates existing ACLs without requiring LocalService WRITE_DAC. Initial creation uses `x/sys/windows` private DACLs and rejects shared-group access. Service accounts get data Modify and executable Read / Execute permissions. Service startup waits for listeners, TLS, and runtime identity. Controls have timeouts, and start also waits for Admin health. POSIX system mode requires an explicit non-root user and data ownership.
 
-Windows 重新打开状态只校验现有 ACL，不要求 LocalService 获得 WRITE_DAC；首次创建使用 x/sys/windows 设置私密 DACL，拒绝共享组的授权。服务数据目录授予 Modify，程序目录另行限制为 Read / Execute。服务启动等待监听器、TLS 和运行标识写入成功，服务控制有超时，启动操作另外等待管理健康响应。POSIX 系统模式要求明确非 root 用户并分配数据目录所有权。
+### Upgrade, migration, and desktop boundaries
 
-### 升级、迁移与桌面管理
+`runtime upgrade` coordinates stopping, backup, deployment, existing service registration replacement, and restoration of the original mode. It refuses foreground process takeover. `runtime migrate --to <empty-directory>` consistently copies state / keys, retaining source and snapshots, and can install / start a target service after removing old registration. `runtime rollback-program` selects only the verified `previous.json` executable; state restore remains explicit. Services must be reinstalled to follow the changed executable path. Failures do not automatically roll back business state that may have received MCP writes.
 
-`runtime upgrade` 已编排停受管进程、备份、部署、重建既有服务注册并按原模式恢复；前台进程拒绝接管。`runtime migrate --to <空目录>` 一致性复制状态与配套密钥，保留源目录和快照，移除旧服务注册后可安装 / 启动目标服务。`runtime rollback-program` 只选回 previous.json 指向的已校验程序，状态恢复保持显式；服务需重装以更新实际程序路径。失败不会在可能发生真实 MCP 写入后自动回滚业务状态。
+The desktop offers executable / directory selection, bundled executable discovery, stable local startup, explicit upgrade, and independent client login startup. It does not offer service installation, migration, or uninstall. Pure clients without Go ask users to select an executable or connect over HTTP.
 
-桌面提供程序 / 目录选择、携带包自动发现、稳定部署后自动连接、按服务注册选择启停、系统服务迁移预览、卸载保留数据和独立客户端登录自启。纯客户端无 Go 时只提示选择独立程序或连接已有 MCP Server。
-
-Windows 使用 ShellExecuteExW 的 runas 启动同一 Go 生命周期命令，参数以 Windows 标准规则逐项编码；系统拥有 UAC 提示，结果经私密一次性目录交回客户端。
-
-授权工作进程携带原桌面用户的 SID，只接受具体用户账户；新目录与程序目录保留该用户的管理权限，避免使用另一管理员账户授权后客户端失去读取凭据的能力。既有私密目录只增加该用户权限，服务账户仍使用数据 Modify / 程序 Read-Execute。首次初始化拒绝含无关文件的目录，状态与秘密文件拒绝符号链接；Windows 还检查关键文件自己的 ACL，防止显式共享权限绕过父目录限制。
+For explicit CLI service administration, Windows elevation uses `ShellExecuteExW` with `runas` and individually encoded arguments, with the OS owning UAC and results passed through a private one-time directory. Authorization carries the original desktop user's concrete SID so elevation through a different administrator does not remove that user's access. Existing private directories add only that user; service accounts retain data Modify / executable Read-Execute. Initialization refuses unrelated files, state / secret paths reject symbolic links, and critical Windows files have their own ACL checks to prevent shared access through explicit child permissions.

@@ -1,22 +1,22 @@
-# 技术选择与参考来源
+# Technical choices and references
 
-优先使用成熟依赖和系统 API，以小范围适配形成个人工具；不复制参考项目的完整实现，不引入第二套业务状态或通用框架。完整依赖版本以锁文件为准。
+Prefer mature dependencies and system APIs with small adapters suitable for a personal tool. Do not copy full reference projects, introduce a second business state store, or add generic frameworks. Lockfiles record exact dependency versions.
 
-## 参考项目
+## Reference projects
 
-- [CC Switch](https://github.com/farion1231/cc-switch)：参考桌面卡片、设置、托盘、轻量模式及配置集成的用户流程；本项目保留独立 Server、权限与审批管线，不依赖该项目运行。
-- [Bytebase Omni](https://github.com/bytebase/omni)：复用 PostgreSQL、MySQL、SQL Server、Oracle 方言 AST；固定提交，通过薄适配提取表与列来源。Oracle 解析器只用于 DM 常用语法适配，不代表支持全部 DM 语法。
+- [CC Switch](https://github.com/farion1231/cc-switch): a reference for desktop cards, settings, tray behavior, lightweight mode, and configuration integration flows. This project retains its independent MCP Server, permission and approval pipeline, and does not require CC Switch at runtime.
+- [Bytebase Omni](https://github.com/bytebase/omni): reused PostgreSQL, MySQL, SQL Server, and Oracle dialect ASTs at a pinned commit, with thin adapters for table and column provenance. The Oracle parser supports a common DM syntax subset, not all DM syntax.
 
-## 实现选择
+## Implementation choices
 
-Go 使用标准库 net/http、database/sql、slog，配合官方 MCP SDK、Cobra、goose 与成熟服务库。SQLite 持久化，不引入 ORM、Redis、消息队列、外部 IAM 或 DI 容器。
+Go uses standard `net/http`, `database/sql`, and `slog` with the official MCP SDK, Cobra, goose, and an established service library. SQLite provides persistence without an ORM, Redis, message queue, external IAM, or DI container.
 
-桌面使用 Tauri 2、React、Radix 和 Headless Tree。对象树复用异步缓存、多选、ARIA 和键盘能力；业务策略与数据库执行仍在 Go 中。React Hook Form / Zod 管理表单，TanStack Query 管理服务状态，semver 负责版本语义。
+The desktop uses Tauri 2, React, Radix, and Headless Tree. The object tree reuses asynchronous caching, multiselect, ARIA, and keyboard support; business policies and database execution remain in Go. React Hook Form / Zod manage forms, TanStack Query manages remote state, and semver handles version semantics.
 
-外部 TOML 使用 toml_edit 保留注释；文件更新采用备份、预览指纹和原子替换。配置格式参考 [Codex MCP 文档](https://developers.openai.com/codex/mcp)、[Codex 配置参考](https://developers.openai.com/codex/config-reference) 和 [Claude Code MCP 文档](https://code.claude.com/docs/en/mcp)。
+External TOML uses `toml_edit` to preserve comments. File updates use backups, preview fingerprints, and atomic replacement. Configuration formats follow the [Codex MCP documentation](https://developers.openai.com/codex/mcp), [Codex configuration reference](https://developers.openai.com/codex/config-reference), and [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
-DM 使用原生 database/sql 驱动，参考 [DM 原生接口指南](https://eco.dameng.com/document/dm/zh-cn/app-dev/go_dm.html)。[ODBC 指南](https://eco.dameng.com/document/dm/zh-cn/app-dev/go_odbc.html) 仅作为替代路线资料，当前不同时实现两套驱动管理。正常使用 Go Modules，不向 GOROOT 复制源码或关闭模块校验；许可和 TLS 限制见 [依赖说明](dependencies.md)。
+DM uses its native `database/sql` driver, referencing the [DM native interface guide](https://eco.dameng.com/document/dm/zh-cn/app-dev/go_dm.html). The [ODBC guide](https://eco.dameng.com/document/dm/zh-cn/app-dev/go_odbc.html) is an alternative reference only; the project does not maintain two driver management systems. Use Go Modules normally rather than copying source into GOROOT or disabling module verification. See [Dependencies and limitations](dependencies.md) for license and TLS restrictions.
 
-## 来源与许可
+## Provenance and licenses
 
-新增依赖说明用途、许可及平台影响。提取上游代码时附固定提交、修改说明与原始许可，不把设计参考等同于代码复制。分发包收集实际依赖清单、许可文本和精确源码地址；补充文本由 third-party/notices.json 记录来源和哈希，不以本项目 MIT 覆盖上游许可。
+Document each new dependency's purpose, license, and platform effects. Extracted upstream code must retain its pinned commit, modification notes, and original license; design references do not imply copied code. Distribution packages include actual dependency inventories, license texts, and exact source URLs. `third-party/notices.json` records supplemental text sources and hashes. The project's MIT license does not replace upstream terms.

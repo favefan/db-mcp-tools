@@ -1,36 +1,36 @@
-# 协作约定
+# Collaboration guidelines
 
-## 工作目标
+## Goals
 
-- 先读 `docs/README.md` 和相关设计，从整个程序的调用链、状态归属和用户流程定位问题，再改具体实现。
-- 按当前任务授权实施，不把历史任务当作新任务的默认授权。
-- 客户端位于 `client/`，Go Server / CLI / Bridge 位于 `server/`。业务逻辑和 SQLite 状态只属于 Server，Rust 只做桌面和本机集成。
-- 目标是完成实用的个人工具。保持逻辑直接、风格简洁；不为假想场景增加框架、抽象、兼容层或配置。
-- 除严重安全、性能问题及当前功能必需的修正外，不做没有需求的细节提升，不以局部优化替代整体交付。
+- Read `docs/README.md` and the relevant design first. Locate problems through the application's call chain, state ownership, and user flow before changing individual implementations.
+- Work within the current task's authorization. Historical tasks do not provide default authorization for new work.
+- The client lives in `client/`; the Go MCP Server / CLI / Bridge live in `server/`. Business logic and SQLite state belong only to the MCP Server. Rust handles desktop and local integration.
+- Build a practical personal tool. Keep logic direct and style simple; do not add frameworks, abstractions, compatibility layers, or configuration for hypothetical scenarios.
+- Apart from serious security or performance issues and fixes required by the current feature, avoid unsolicited refinements. Do not substitute local optimization for complete delivery.
 
-## 实现与依赖
+## Implementation and dependencies
 
-- 实现组件、协议、解析器、驱动、服务管理和文件操作前，先调查成熟库；能以少量适配完成的优先复用。
-- 记录影响架构的依赖选择和真实限制；不把上游 README 的声明或未运行的测试写成已验证事实。
-- 按业务能力组织代码，以简单函数和小接口为主，不复制整个参考项目，不提前创建大量空模块。
-- 不绕过身份、权限、审批和 Mask 的统一入口；不要用补丁式分支分别修复不同工具的同一业务问题。
+- Investigate mature libraries before implementing components, protocols, parsers, drivers, service management, or file operations. Prefer reuse when a small adapter is sufficient.
+- Document dependency choices that affect architecture and real limitations. Do not present upstream README claims or unrun tests as verified facts.
+- Organize code by business capability, using simple functions and small interfaces. Do not copy entire reference projects or create empty modules in advance.
+- Do not bypass the unified identity, permission, approval, and Mask entry points. Fix shared business problems in the common pipeline rather than separate tool-specific patches.
 
-## Git 自动管理
+## Git management
 
-- 操作前检查状态；是否创建分支、提交或合并遵循当前任务授权。`main` 为集成主线，工作分支采用简短主题，Agent 默认使用 `codex/` 前缀，合入后删除。
-- 使用贡献者自己的 Git 身份，不替换为项目作者身份，不修改用户全局 Git 配置。
-- 未经用户指定不添加远端、不 push。保留其他人的修改和提交，不做破坏性 reset、强推或无关历史重写。
-- 文档、规范、一个完整能力或修复可各形成一次清晰提交；不按文件或每个微小步骤机械拆提交。提交信息采用 `docs:`、`chore:`、`feat:`、`fix:` 等前缀。
-- 任务结束说明关键变更、适度验证、提交与分支；已授权提交的任务保持自己的工作已提交。
+- Check status before operating. Follow the current task's authorization for branches, commits, and merges. `main` is the integration branch; use short topic branches, with `codex/` as the default agent prefix, and delete them after merging.
+- Use the contributor's own Git identity. Do not replace it with the project author's identity or change global Git configuration.
+- Do not add remotes or push unless the user requests it. Preserve others' changes and commits; do not perform destructive resets, force pushes, or unrelated history rewrites.
+- Documentation, guidelines, a complete capability, or a fix can each form a clear commit. Do not split mechanically by file or tiny step. Use prefixes such as `docs:`, `chore:`, `feat:`, and `fix:`.
+- At task completion, report key changes, appropriate validation, commits, and branches. When commits are authorized, leave your work committed.
 
-## 格式与验证
+## Formatting and validation
 
-- 遵守 `.gitattributes`、`.editorconfig`、Prettier、Taplo 和 `rustfmt.toml`。默认 UTF-8 无 BOM、LF；`.bat` / `.cmd` 例外 CRLF。
-- Go 使用 `gofmt`；Rust 使用 `cargo fmt`；TS / TSX / JS / CSS / JSON / YAML / Markdown / 迁移 SQL 使用仓库锁定的 Prettier 及 SQL 插件；TOML 使用 Taplo。
-- 新增其他语言时同时选定并配置其格式化流程，不依靠编辑器个人习惯。详细命令见 `docs/development.md`。
-- 开发时只运行受影响范围的必要检查。不要每实现一个小功能就跑全矩阵、截图巡检或大量重复测试。
-- 为身份和权限、SQL 分类、脱敏绕过、审批与写入重复执行、配置保留等真实边界保留集中回归；普通样式和简单 CRUD 不编写镜像实现的测试。
-- 按受影响的用户流程集中联调；发布前检查对应数据库和平台，不以跳过冒充测试通过。
-- 所有目标数据库的集成测试和验证均使用临时容器；按开发平台实际可用情况选择 WSLC（适用于 Linux 的 Windows 子系统容器 CLI 工具）、Docker、Apple Container 或 Podman，不要求同时具备多套工具，不改用宿主机安装的数据库或现有业务实例做测试。
-- 没有可用的对应数据库镜像时允许跳过该数据库测试，注明原因并继续其他工作；任何可用的镜像构建方式都可以用于自建专用测试镜像，不限于 Docker 或 Dockerfile，自建不是跳过前的强制步骤。
-- 测试容器用后即焚；成功、失败或中断均清理本次创建的容器、卷、网络、临时数据和专用测试镜像，只保留必要测试记录，不清理无关资源。详细流程见 `docs/development.md`。
+- Follow `.gitattributes`, `.editorconfig`, Prettier, Taplo, and `rustfmt.toml`. Use UTF-8 without BOM and LF, except CRLF for `.bat` / `.cmd`.
+- Use `gofmt` for Go and `cargo fmt` for Rust. Use the repository's locked Prettier and SQL plugin for TS / TSX / JS / CSS / JSON / YAML / Markdown / migration SQL, and Taplo for TOML.
+- Choose and configure formatting when adding another language; do not rely on individual editor settings. Commands are in `docs/development.md`.
+- Run only the necessary checks for the affected scope during development. Do not run the full matrix, screenshot sweeps, or repetitive tests after every small change.
+- Keep focused regressions for real boundaries: identity and permissions, SQL classification, masking bypasses, approvals and duplicate writes, and configuration preservation. Do not write tests that mirror ordinary styling or simple CRUD.
+- Integrate by affected user flow. Before release, check the relevant databases and platforms; never report skipped checks as passed.
+- Use temporary containers for all target database integration tests and validation. Choose WSLC (the Windows Subsystem for Linux container CLI), Docker, Apple Container, or Podman according to the development platform. Multiple runtimes are not required. Do not substitute host-installed databases or existing business instances.
+- If no suitable database image is available, skip that database with a reason and continue other work. Any available image build method may be used for dedicated test images, not only Docker or Dockerfiles. Building an image is optional before skipping.
+- Dispose of test containers after use. On success, failure, or interruption, clean up containers, volumes, networks, temporary data, and dedicated test images created for the run. Keep only necessary test records and leave unrelated resources alone. See `docs/development.md`.

@@ -1,74 +1,74 @@
-# 产品范围与默认行为
+# Product scope and defaults
 
-## 1. 产品目标
+## 1. Purpose
 
-面向个人开发者，统一管理 AI Agent 对数据库的 MCP 访问。完整使用链路是：运行 MCP Server → 添加数据库实例 → 为 Agent 创建独立凭据并安装 MCP 配置 → 设置范围、权限和 Mask → 必要时批准操作 → 查看结果和审计。
+DB MCP Tools manages AI agents' database access over MCP for individual developers. The flow is: run an MCP Server → add database instances → issue separate agent credentials and install MCP configuration → set scope, permissions, and Mask → approve operations when required → inspect results and audit records.
 
-MCP Server 独立工作，客户端可选安装。桌面端既能管理本机 MCP Server，也能连接用户配置的已有 MCP Server；本机支持运行、停止、重启、服务安装、服务卸载和启动方式设置。
+The MCP Server runs independently; the desktop is optional. The desktop can manage a local background process or connect to an existing MCP Server. Local management provides start, stop, and restart. System services remain a separate Go CLI deployment option.
 
-V1 支持 Windows、macOS、Linux 桌面；Windows 优先开发，macOS / Linux 进入最终发布矩阵。Go MCP Server 各平台可独立使用，远端管理优先走用户已有 SSH 隧道；暂不开发内置 SSH 管理器。
+Windows is the primary development platform. The Go MCP Server supports Windows, macOS, and Linux; desktop builds use each OS's native toolchain. GitHub workflows cover Windows x64 only. Remote management uses existing SSH tunnels; there is no built-in SSH manager.
 
-## 2. 主要对象与页面
+## 2. Objects and pages
 
-| 对象 / 页面 | 内容                                                                          |
-| ----------- | ----------------------------------------------------------------------------- |
-| 实例        | 逻辑数据库连接、允许资源、SQL 权限、审批模式、Mask、限额、关联实体、记录      |
-| 实体        | 稳定 Entity ID、显示名称、凭据、启用状态、绑定实例、有效权限、最近来源和请求  |
-| 待审批      | 操作审批与实体登记分开显示；支持仅允许一次、拒绝及明确范围的持久规则          |
-| 日志        | 按实体、实例、时间、结果筛选请求、拒绝、审批、错误及管理员变更                |
-| 设置        | MCP Server 连接与本机运行、默认实例模板、MCP 客户端配置、备份恢复、主题与通知 |
+| Page      | Contents                                                                                                                                          |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Instances | Logical database connections, allowed resources, SQL permissions, approval mode, Mask, limits, associated entities, and records                   |
+| Entities  | Stable entity IDs, display names, credentials, enabled state, bindings, effective permissions, recent sources, and requests                       |
+| Approvals | Separate SQL operation approvals and entity registration, one-time allowance, denial, and explicitly scoped persistent rules                      |
+| Logs      | Requests, denials, approvals, errors, and administrator changes, filtered by entity, instance, time, and outcome                                  |
+| Settings  | Configurations and MCP Server connections, local lifecycle, instance templates, agent integration, backups and recovery, theme, and notifications |
 
-不再为策略、网络、Mask、驱动各建一级导航。实例详情保留“连接、范围、权限、Mask、实体、记录、高级”七个标签，相关配置就近管理。
+Policies, networking, Mask, and drivers do not have separate top-level navigation. Instance details have seven tabs: Connection, Scope, Permissions, Mask, Entities, Records, and Advanced.
 
-实体名称、IP 和客户端声明只是展示信息；凭据识别身份。一个实体可有多个可轮换凭据，也可绑定多个实例，每个实例单独授权。多个 Agent 共用同一凭据就视为同一实体。
+Entity names, IPs, and client declarations are display information; credentials establish identity. An entity can have several rotatable credentials and bindings to multiple instances with separate authorization. Agents sharing a credential share an identity.
 
-## 3. 默认值
+## 3. Defaults
 
-| 项目             | V1 默认                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| MCP / Admin 监听 | 分开监听，默认都只绑定 `127.0.0.1`；管理员和实体凭据完全分离                             |
-| 未认证客户端     | 拒绝数据工具，不开放匿名数据库发现；通过管理端登记后接入                                 |
-| 新实体           | 安装配置只准备接入凭据；首次连接自动登记为待授权，管理员确认实例与权限后才能访问         |
-| 新实例模板       | 复制模板快照；修改模板只影响以后创建的实例                                               |
-| 来源             | 仅本机；远程访问需显式放开监听、CIDR 和 TLS 部署                                         |
-| SQL 范围         | SELECT、INSERT、UPDATE、DELETE；DDL 默认禁止，过程调用和任意脚本不在初始支持范围         |
-| 审批             | 允许范围内只读放行，写操作询问；“每次询问”“无需逐次审批”为另外两种选择                   |
-| 执行限制         | 15 秒执行超时、5000 行、10 MiB 结果字节上限、每实例 4 个并发执行；等待审批不占数据库连接 |
-| 审批有效期       | 默认 5 分钟，可在高级设置修改；过期拒绝，不自动执行                                      |
-| 脱敏             | 无预置脱敏规则；仅应用用户填写或显式选择模板复制的 Mask 规则，可预览                     |
-| 审计             | 开启；默认保留 30 天，不记录参数值、结果原值、认证头或密码                               |
-| 退出客户端       | 本机托管停止当前实例；HTTP 连接的已有 MCP Server 保持运行                                |
-| 当前配置         | 初始为 `default`；同一时间只激活一个 Profile，每个 Profile 选择一种连接方式              |
-| 自动服务安装     | 关闭；用户选择安装服务后才注册，安装包本身不自动提权或注册服务                           |
+| Setting                 | Default                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP / Admin listeners   | Separate listeners, both bound to `127.0.0.1`; administrator and entity credentials are separate                                               |
+| Unauthenticated clients | Data tools and anonymous database discovery are denied; access requires administrator registration                                             |
+| New entities            | Configuration installation prepares an access credential; first connection creates pending registration, requiring administrator authorization |
+| Instance templates      | A snapshot is copied; edits affect only future instances                                                                                       |
+| Sources                 | Local only; remote access requires explicit listener, CIDR, and TLS configuration                                                              |
+| SQL                     | SELECT, INSERT, UPDATE, DELETE; DDL denied by default; procedure calls and arbitrary scripts are outside the initial scope                     |
+| Approval                | Allow authorized reads, ask for writes; always-ask and no-per-request-approval modes are also available                                        |
+| Execution limits        | 15 seconds, 5000 rows, 10 MiB of encoded results, 4 concurrent executions per instance; approval waits hold no database connection             |
+| Approval lifetime       | 5 minutes, configurable in advanced settings; expired requests are denied, not executed                                                        |
+| Mask                    | No preset rules; only user-entered or explicitly copied template rules apply, with preview support                                             |
+| Audit                   | Enabled, retained for 30 days; summaries exclude parameter values, raw result values, authentication headers, and passwords                    |
+| Client exit             | Stop the active locally managed MCP Server; leave existing HTTP-connected MCP Servers running                                                  |
+| Configuration           | Initial `default` profile; one active profile and one connection mode at a time                                                                |
+| System services         | No automatic registration or elevation; optional CLI management is separate from desktop local management                                      |
 
-“无需逐次审批”只取消人工确认，不改变已有权限和强制 Mask。审批也不能越过禁止访问的库、表、列及默认禁止的操作类别。
+No-per-request-approval mode removes human confirmation only. It does not change permissions or mandatory Mask. Approval cannot override forbidden databases, tables, columns, or operation classes.
 
-## 4. V1 必须完成
+## 4. Capabilities
 
-| 能力                      | 完成标准                                                                               |
-| ------------------------- | -------------------------------------------------------------------------------------- |
-| MCP Server / CLI / Bridge | 无 UI 启停、查询与审批可工作；Streamable HTTP 和 STDIO Bridge 接入同一 MCP Server      |
-| 四数据库                  | PostgreSQL、MySQL、SQL Server、DM8 的连接、Schema、常用读写、超时与结果限制实际可用    |
-| PostgreSQL 扩展           | 识别 PostGIS / TimescaleDB，展示基础扩展及相关元数据；空间值有可读表示                 |
-| 身份和权限                | 独立凭据、轮换 / 撤销 / 禁用实体、IP/CIDR、资源范围、SQL 类别及实体收紧规则            |
-| 审批                      | 单次批准、拒绝、过期、有限范围的记住规则；不要求人把授权串发给模型                     |
-| Mask                      | 固定替换、部分保留、NULL、正则内容替换、禁止访问；规则继承、源字段匹配和预览           |
-| 使用辅助                  | 连接测试、Schema 选择器、有效权限查看、只做分析的规则模拟器、轻量风险提示              |
-| 日志与恢复                | 查询 / 拒绝 / 错误 / 审批审计、配置导出导入、SQLite 一致性备份与恢复                   |
-| 桌面体验                  | 五项导航、深浅主题、托盘和审批通知、本机 MCP Server 生命周期与服务化管理               |
-| 接入客户端                | Claude Code、Codex 的配置生成、定点安装 / 移除、备份与差异预览；其他客户端提供通用配置 |
-| 分发                      | 独立 MCP Server 包、纯客户端包、携带 MCP Server 的客户端包，并明确驱动与平台能力       |
+| Capability                | Scope                                                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP Server / CLI / Bridge | Headless lifecycle, queries, and approvals; Streamable HTTP and STDIO Bridge share one MCP Server                                        |
+| Databases                 | PostgreSQL, MySQL, SQL Server, and optional DM8 connections, catalogs, common reads / writes, timeouts, and limits                       |
+| PostgreSQL extensions     | Basic PostGIS / TimescaleDB recognition and metadata, with readable spatial values                                                       |
+| Identity and permissions  | Separate credentials, rotation / revocation, entity disabling, IP/CIDR, resource scope, SQL classes, and additional entity restrictions  |
+| Approvals                 | One-time approval, denial, expiry, and narrowly scoped remembered rules without passing authorization strings through a model            |
+| Mask                      | Fixed replacement, partial retention, NULL, regular expressions, denied access, inheritance, source matching, and previews               |
+| Assistance                | Connection tests, schema selection, effective permissions, analysis-only rule simulation, and concise risk hints                         |
+| Logs and recovery         | Query / denial / error / approval auditing, configuration export / import, consistent SQLite backup and restore                          |
+| Desktop                   | Five navigation entries, light / dark themes, tray and approval notifications, and local MCP Server lifecycle                            |
+| Agent integration         | Claude Code and Codex configuration generation, targeted installation / removal, backups, and previews; generic export for other clients |
+| Distribution              | Standalone MCP Server, client-only, and bundled MCP Server packages with explicit driver and platform capabilities                       |
 
-规则模拟器复用实际策略和 SQL 分析代码，只不执行 SQL。Mask 预览默认使用用户输入的示例值；读取真实样本须由管理员主动操作，原值不进入普通日志。
+The simulator shares actual policy and SQL analysis code without executing SQL. Mask preview normally uses user-supplied sample values; reading real samples requires an explicit administrator action, and raw values do not enter ordinary logs.
 
-## 5. Mask 和数据库权限的边界
+## 5. Mask and database security
 
-输出 Mask 让返回值少暴露信息，不承诺消除任意条件、聚合、时间差带来的推断。必须保密的字段用“禁止访问”和数据库列权限 / 安全视图，行级限制使用数据库视图或原生 RLS。
+Output Mask reduces exposed information but cannot eliminate inference from arbitrary predicates, aggregates, or timing. Protect confidential fields with denied access and database column permissions / security views. Use database views or native RLS for row restrictions.
 
-本项目解析常用 SQL 的资源与字段引用并统一检查。对无法解析或无法确定来源的查询返回明确的“不支持此语法 / 无法确定字段来源”，引导使用安全视图或简化查询；不为追求任意 SQL 兼容而默认放行，也不为此自建通用 SQL 改写和血缘引擎。
+The shared pipeline parses and checks resources and field references in common SQL. Unsupported syntax or uncertain provenance produces an explicit error and guidance to simplify the query or use authorized views. Arbitrary SQL compatibility does not justify allowing unknown syntax or building a general SQL rewriting and lineage engine.
 
-## 6. 暂不进入 V1
+## 6. Outside the current scope
 
-企业多租户、复杂 RBAC / IAM、集群和高可用；自建 OAuth 授权服务器；任意 SQL 跨方言改写；通用行过滤表达式；自动变更快照与回滚；索引智能建议；大规模性能分析或统计大屏；任意存储过程和脚本执行；跨请求长期事务；插件市场；自动下载并热切换数据库驱动。
+Enterprise multitenancy, complex RBAC / IAM, clusters and high availability, a custom OAuth authorization server, arbitrary cross-dialect SQL rewriting, generic row-filter expressions, automatic change snapshots and rollback, index recommendations, large performance dashboards, arbitrary procedures or scripts, long-lived cross-request transactions, a plugin marketplace, and automatic driver downloads / hot switching.
 
-MCP Tasks 仅在锁定 SDK 与目标客户端均支持时作为增强；V1 的审批恢复不依赖它。目标数据库统一用临时容器测试，工具按开发平台实际情况选择；缺少可用镜像时允许跳过对应数据库验证，任何可用的镜像构建方式都可按需用于自建专用测试镜像，用后清理。测试结果只描述实际执行的场景。
+MCP Tasks may be an enhancement when both the pinned SDK and target clients support it; approval resumption does not depend on it. Target databases are tested in temporary containers with a runtime available on the development platform. Missing usable images permit a documented skip; any available image build method may be used for dedicated test images, which are removed after use. Results describe only scenarios actually run.

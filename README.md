@@ -1,35 +1,35 @@
 # DB MCP Tools
 
-面向个人开发者的数据库 MCP 管理器。独立 Go MCP Server 提供 CLI / STDIO Bridge；Tauri / React 桌面客户端管理实例、实体、权限、审批、Mask、日志和本机 MCP Server。
+A database MCP manager for individual developers. The standalone Go MCP Server also provides a management CLI and STDIO Bridge. The Tauri / React desktop client manages instances, entities, permissions, approvals, Mask rules, logs, and locally managed MCP Servers.
 
-业务状态只属于 MCP Server，桌面关闭后 MCP Server 可继续运行。支持 PostgreSQL、MySQL、SQL Server 和可选 DM8；默认构建不含许可尚未确认的 DM 驱动，含 DM 的本机构建不作为公开分发包。
+All business state belongs to the MCP Server. The desktop controls the lifecycle of locally managed instances; MCP Servers connected over HTTP run independently. PostgreSQL, MySQL, SQL Server, and optional DM8 are supported. Default builds omit the DM driver because its redistribution license has not been confirmed; local DM builds are not public distribution packages.
 
-## 平台与构建
+## Platforms and builds
 
-MCP Server 支持 Windows、macOS 和 Linux；桌面使用 Tauri 的原生平台工具链。GitHub 工作流仅限 Windows x64，提供 PR / main 基础检查、手动未签名打包，以及版本标签触发的 Release 发布。平台依赖和驱动限制见开发指南，发布步骤见 [RELEASE](RELEASE.md#维护者发布流程)。
+The MCP Server supports Windows, macOS, and Linux. The desktop requires each platform's native Tauri toolchain. GitHub workflows run on Windows x64 only: PR checks, optional manual unsigned packaging, and release validation, builds, and publication triggered by version tags. See the [development guide](docs/development.md) for prerequisites and driver restrictions.
 
-## 开始开发
+## Getting started with development
 
-所有命令从仓库根目录执行。按工作范围选择环境，详见 [开发指南](docs/development.md)。
+Run commands from the repository root. Choose the environment that matches your work; the [development guide](docs/development.md) covers setup, connection, shutdown, and cleanup.
 
-| 路径                 | 必需工具                                                            | 入口                                                                         |
-| -------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 前端预览（模拟数据） | Node 24.22.2、pnpm 10.27.0                                          | 安装依赖后运行 pnpm --dir client preview:ui                                  |
-| MCP Server / CLI     | Go 1.27.3                                                           | go -C server build -o bin/dbmcp.exe ./cmd/dbmcp，输出为 server/bin/dbmcp.exe |
-| 完整桌面             | Node / pnpm、Rust 1.96.1、原生编译依赖；开发本机 MCP Server 另需 Go | 按指南初始化隔离开发目录，再 pnpm --dir client dev:desktop                   |
+| Path                            | Required tools                                                                 | Entry point                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Frontend preview with mock data | Node 24.22.2, pnpm 10.27.0                                                     | Install dependencies, then run `pnpm --dir client preview:ui`                          |
+| MCP Server / CLI                | Go 1.27.3                                                                      | `go -C server build -o bin/dbmcp.exe ./cmd/dbmcp` produces `server/bin/dbmcp.exe`      |
+| Full desktop                    | Node / pnpm, Rust 1.96.1, native build dependencies; Go for a local MCP Server | Initialize an isolated development directory, then run `pnpm --dir client dev:desktop` |
 
-Linux / macOS 将 MCP Server 输出名改为 bin/dbmcp。首次开发不要使用已安装产品的数据目录；初始化、连接、停止与清理步骤见指南。普通开发不需要容器，真实数据库集成测试才需要临时容器。
+On Linux / macOS, use `bin/dbmcp` as the MCP Server output name. Do not use an installed application's data directory for initial development. Containers are needed only for real database integration tests.
 
-## 文档与贡献
+## Documentation and contributions
 
-- [v1.0.11 发布说明](RELEASE.md) · [变更历史](CHANGELOG.md)
-- [安装与使用](docs/user-guide.md)
-- [开发环境、三条启动路径与检查](docs/development.md)
-- [贡献流程](CONTRIBUTING.md) · [安全问题](SECURITY.md)
-- [设计与架构入口](docs/README.md) · [MCP Server](server/README.md) · [客户端](client/README.md)
-- [第三方许可](third-party/README.md)
+- [v1.0.11 release notes](RELEASE.md) · [Changelog](CHANGELOG.md)
+- [Installation and usage](docs/user-guide.md)
+- [Development setup and checks](docs/development.md)
+- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- [Design and architecture](docs/README.md) · [MCP Server](server/README.md) · [Client](client/README.md)
+- [Third-party licenses](third-party/README.md)
 
-## 本地打包
+## Local packaging
 
 ```sh
 pnpm package:server --platform=windows --arch=amd64
@@ -37,6 +37,6 @@ pnpm package:client --server=none --target=x86_64-pc-windows-msvc
 pnpm package:client --server=bundled --target=x86_64-pc-windows-msvc
 ```
 
-产物与 SHA256SUMS 位于 artifacts/releases/<当前版本>/，当前为 1.0.11。桌面必须在目标 OS 原生构建，MCP Server 可交叉编译。--dm=native 仅用于明确标识的本地 DM 构建。详细前置条件和测试入口见开发指南。
+Packages and `SHA256SUMS` are written to `artifacts/releases/<version>/`, currently `1.0.11`. Build the desktop on its target OS; the MCP Server can be cross-compiled. Use `--dm=native` only for explicitly marked local DM builds. See the development guide for prerequisites and test commands.
 
-源码采用 [MIT](LICENSE)，第三方许可不被覆盖。
+The source code is licensed under [MIT](LICENSE). Third-party licenses remain applicable.

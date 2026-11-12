@@ -1,11 +1,11 @@
-# 安全问题与敏感资料
+# Security and sensitive information
 
-请勿在公开 Issue、PR 或附件中提交真实连接密码、Admin / MCP Token、密钥、凭据文件、数据库备份、请求详情或未经审查的诊断包。请求详情可能含原始 SQL 和精确参数；诊断导出有排除规则，也应在分享前检查。
+Do not publish real connection passwords, Admin / MCP tokens, keys, credential files, database backups, request details, or unreviewed diagnostic bundles in issues, PRs, or attachments. Request details may contain raw SQL and exact parameters. Review diagnostic exports before sharing, even though they apply exclusion rules.
 
-安全问题优先通过仓库 Security 页面的 “Report a vulnerability” 私密报告入口提交。若该入口不可用，请先以不含漏洞利用细节和敏感数据的方式向维护者请求私密联系渠道，不公开漏洞载荷。
+Use the private **Report a vulnerability** entry on the repository's Security page. If unavailable, ask the maintainer for a private contact channel without exposing exploit details or sensitive data. Do not publish exploit payloads.
 
-报告请提供受影响版本、最小复现、影响范围和去敏后的证据。不对不属于自己的数据库或服务执行验证。
+Include affected versions, a minimal reproduction, impact, and sanitized evidence. Do not test against databases or services you do not own.
 
-发现真实凭据泄露时，先撤销 / 轮换凭据，再协调清理；删除当前文件不能撤销 Git 历史中的秘密。未经协调不要重写共享历史。
+If real credentials are exposed, revoke or rotate them first, then coordinate cleanup. Deleting a current file does not remove secrets from Git history. Do not rewrite shared history without coordination.
 
-测试脚本中的固定密码仅用于本轮创建、绑定回环端口并在结束后清理的数据库容器，不是部署默认密码。默认分发不包含许可未确认的 DM 驱动。
+Fixed passwords in test scripts are only for temporary database containers bound to loopback and cleaned up after the run. Default distributions omit the DM driver because its redistribution license has not been confirmed.

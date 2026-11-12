@@ -1,139 +1,139 @@
-# DB MCP Tools 使用指南
+# DB MCP Tools user guide
 
-DB MCP Tools 将数据库连接、Agent 身份、权限、审批、脱敏与审计放在独立 Go MCP Server 中。桌面客户端用于管理，同一会话只激活一个配置。本机托管的 MCP Server 由客户端负责启停；通过 HTTP 连接的已有 MCP Server 独立运行。
+DB MCP Tools keeps database connections, agent identity, permissions, approvals, Mask, and audit in an independent Go MCP Server. The desktop manages one active configuration per session. It controls locally managed MCP Servers; existing MCP Servers connected over HTTP run independently.
 
-## 选择安装包
+## Choosing a package
 
-- **纯客户端**：连接已有 MCP Server，或选择已安装的 `dbmcp`。没有本机程序时使用 HTTP 接入 Agent。
-- **携带 MCP Server**：包含匹配平台的 Go 程序。设置页可直接部署、启动并连接。
-- **独立 MCP Server**：一个程序同时提供 MCP Server、管理 CLI、STDIO Bridge 和服务管理。
+- **Client only**: connect to an existing MCP Server or select an installed `dbmcp`. Use HTTP agent integration if no local executable is available.
+- **Bundled MCP Server**: includes the Go executable for the platform. Deploy, start, and connect from settings.
+- **Standalone MCP Server**: one executable provides the MCP Server, management CLI, STDIO Bridge, and CLI service management.
 
-版本、API、平台、驱动、文件哈希和第三方许可见包内清单。本地安装包未签名。默认构建包括 PostgreSQL、MySQL、SQL Server；明确标为 `dm-local` 的本机构建另含 DM8 原生驱动，其重新分发许可尚未确认，不将其称为已获授权的公开分发包。
+Package manifests record versions, API compatibility, platform, drivers, file hashes, and third-party licenses. Installers are unsigned. Default builds include PostgreSQL, MySQL, and SQL Server. Explicitly marked `dm-local` builds also include the DM8 native driver; its redistribution license remains unconfirmed, so these are not public distribution packages.
 
-Windows v1.0.4 默认应用目录为 `%LOCALAPPDATA%\db-mcp-tools`。从旧 `DB MCP Tools` 目录升级时，安装器自动迁移到同父目录的 `db-mcp-tools`，保留连接档案、凭据、MCP Server 数据与自启动设置，并修正快捷方式。已自定义的目录继续保留；也可手动选择空目录。目标有其他文件时安装器会拒绝覆盖；旧目录中不属于旧安装清单的文件保留原位。迁移失败可重跑安装器，并通过诊断包中的 `installer-migration.log` 定位。
+Since Windows 1.0.4, the default application directory is `%LOCALAPPDATA%\db-mcp-tools`. Upgrades from the legacy `DB MCP Tools` directory migrate to `db-mcp-tools` under the same parent, preserving profiles, credentials, MCP Server data, and startup settings while correcting shortcuts. Custom paths remain unchanged; an empty directory can also be selected manually. The installer refuses to overwrite unrelated target files. Unknown files in the old directory stay there. Retry failed migrations and inspect `installer-migration.log` in a diagnostic bundle.
 
-## 第一次运行
+## First run
 
-1. 点击侧栏“当前配置” → 新建配置，选择“本机托管”或“已有 MCP Server”。本机模式选择 `dbmcp`；新配置的数据目录可留空，由客户端创建独立目录。携带包会自动发现程序。不要选择项目根目录或其他应用的数据目录。
-2. 保存本机托管配置后自动启动并连接，切换配置或退出客户端时停止。程序部署到数据目录的 `runtime/versions/`，保留稳定入口。新配置分配可用回环端口，已有 `deployment.toml` 的地址保持不变。
-3. 在“数据库实例”的连接页填写账号并测试连接。默认数据库仅用于建立连接和发现对象：PostgreSQL 默认 postgres，SQL Server 默认 master；MySQL 没有通用默认库，可留空；DM8 从端点识别实际库名。在范围页从左侧远端对象多选，用 → 移入右侧许可对象，用 ← 移除。可选整库、模式、表或字段，新建实例初始没有对象授权。再配置操作和审批并保存；实例策略是上限，实体绑定只能进一步收紧或追加 Mask。
-4. 在设置 → Agent 接入安装配置。Agent 首次连接后自动生成待授权实体，可点击访问实体卡片上的“去授权”，直接定位到待审批 → 实体登记，确认实例与权限，再让 Agent 重新连接。也保留在访问实体页手动创建、签发和绑定的方式。
+1. Open the configuration menu at the bottom of the sidebar, then configuration settings. Edit `default` or create a configuration and choose local management or an existing MCP Server. For local management, select `dbmcp`. The bundled package discovers it automatically. Leave the data directory blank for a new isolated directory; never choose the project root or another application's data directory.
+2. Saving a local configuration starts and connects to its MCP Server. Switching away or exiting stops it. Executables use `runtime/versions/` in the data directory with a stable launcher. New configurations receive available loopback ports; existing `deployment.toml` addresses are preserved.
+3. Add a database instance, enter credentials, and test the connection. The default database is only for connecting and discovery: PostgreSQL defaults to `postgres`, SQL Server to `master`, MySQL can be blank, and DM8 identifies the endpoint's actual database. In Scope, select remote objects on the left and use → to grant them on the right; use ← to remove them. Select databases, schemas, tables, or columns. New instances initially grant no objects. Configure operations and approvals, then save. Instance policy is the upper bound; bindings can only tighten it or add Mask.
+4. Install agent configuration under Settings → Agent integration. The agent's first connection creates pending entity registration. The entity card's authorization action opens Approvals → Entity registration, where you select instances and permissions. Reconnect the agent after approval. Manual entity creation, credential issuance, and binding remain available.
 
-独立运行示例：
-
-```sh
-dbmcp --data-dir <专用目录> init
-dbmcp --data-dir <专用目录> runtime upgrade --start
-dbmcp --data-dir <专用目录> run status
-```
-
-数据和程序分开保存。Windows 默认 `%LOCALAPPDATA%\DBMCP\server`；macOS 默认 `~/Library/Application Support/DBMCP/server`；Linux 默认 `$XDG_DATA_HOME/dbmcp/server` 或 `~/.local/share/dbmcp/server`。部署设置在 `deployment.toml`，修改监听地址前先停止 MCP Server。
-
-连接已有 MCP Server 时，在配置编辑中填写回环 Admin 地址与管理员凭据；远程部署通过 SSH 隧道管理。已有 MCP Server 模式只连接，不控制其进程。设置 → MCP Server 展示当前目标，不以并列 Tab 保存两套连接。
-
-## 配置与会话
-
-配置（Profile）保存连接目标、凭据和客户端偏好。首次启动自动创建未连接的 `default` 配置。侧栏底部弹出快捷菜单，选择配置即可切换；菜单中的“配置与 MCP Server”打开完整管理页。当前配置使用主题强调色标记。编辑已连接配置前先断开，删除配置不删除 MCP Server 数据。切换关闭未保存表单、清理缓存和订阅，进行中的操作完成后才能切换。
-
-主题、通知、关闭行为和自动轻量模式随 Profile 保存；系统登录自启动、安装位置和版本由应用共用。业务数据与权限保存在 MCP Server，两个 Profile 指向同一 MCP Server 时共享其业务状态。管理员凭据按 Profile 分开存入系统 keyring。
-
-本机托管要求 MCP Server 1.0.11 或更新。进入配置时启动或接管身份匹配的本机后台进程；切走、断开或真正退出时停止。桌面不提供系统服务安装、迁移或卸载入口；已有系统服务使用 HTTP 配置连接。前台进程由原终端控制，可改为已有 MCP Server 通过 HTTP 连接。HTTP 连接包括 127.0.0.1，均不控制进程。托盘和轻量模式继续运行；强制终止无法保证优雅停机。
-
-旧连接和偏好保留，已有 profiles.json 中的旧启停开关不再使用：本机托管统一负责启停，HTTP 配置保持独立。旧 profile.json 仍可迁入 `default` 配置。
-
-## 接入 Codex / Claude Code
-
-设置 → Agent 接入 → 安装 MCP 配置，选择用户 / 项目作用域、HTTP / STDIO 和条目名称，然后预览。此时无需预先创建实体或选择实例。
-
-- Codex：用户 `$CODEX_HOME/config.toml`，未设置时为 `~/.codex/config.toml`；项目 `.codex/config.toml`，仅受信任项目加载。
-- Claude Code：默认用户 `~/.claude.json`；项目 `.mcp.json`。项目 MCP 首次需 Claude Code 自身确认。
-- HTTP 使用各客户端实际支持的认证字段；STDIO 使用稳定 `dbmcp` 路径和受限凭据文件。纯客户端可选择独立安装的程序。
-
-安装只签发此配置专用的接入凭据，备份原文件并原子保存。Agent 首次携带该凭据连接 MCP 时，MCP Server 原子创建待授权实体，返回 `entity_pending`；批准前不能发现数据库或调用数据工具。在待审批 → 实体登记选择实例、资源、操作与限额后批准，Agent 重新连接即可使用原凭据。绑定与实体启用在同一事务提交，失败不留下部分授权。
-
-实体根据配置中的独立随机凭据识别，不根据可变、可伪造的 IP 或客户端名称认定身份。同一凭据重试、并发或重连只生成一个实体；复制同一配置会共用身份，需要区分时分别安装。未知请求不会匿名创建实体。拒绝登记会撤销该接入凭据，不能靠重连重新注册。
-
-安装失败会撤销新接入凭据。同名外部条目不覆盖；文件变化后需要重新预览。JSON 的无关值、TOML 的无关段落与注释及原换行保留。项目文件含凭据时不要提交版本库。
-
-安装后重启 Agent 或重新连接 MCP。工具包括 `list_instances`、`list_databases`、`list_schemas`、`list_tables`、`describe_table`、`db_query`、`db_execute`、`db_explain`、`approval_status` 和 `resume_request`。
-
-移除只删除未被改写的自身条目，并撤销安装凭据。用户已修改的条目保留，旧凭据仍会撤销。轮换其他凭据后需更新相应 Agent 配置；Token 仅签发时显示。
-
-其他客户端可在“访问实体”签发或轮换凭据后，填写 MCP 地址并点击“导出通用 MCP 配置”。导出的 JSON 使用 `mcpServers` 与 HTTP `headers`，适用于支持该格式的客户端；按目标客户端的导入说明使用。文件包含当前实体凭据并设置为私密权限，覆盖既有文件前保存备份；该凭据的权限、轮换与撤销继续由 MCP Server 管理。
-
-## 权限、审批与 Mask
-
-资源和操作取实例与绑定的交集；来源 CIDR 同时满足；限额取较小值。默认读查询放行，写入询问；DDL、过程、动态 SQL、多语句和未知来源拒绝。审批不能解除硬拒绝。
-
-一个实例可许可一个、部分或全部数据库。PostgreSQL、SQL Server 的对象层级为数据库 → 模式 → 表 → 字段；MySQL 数据库与 Schema 同义，直接展示数据库 → 表 → 字段；DM8 一个端点对应一个实际数据库，内部按用户／模式 → 表 → 字段选择。空模式也可授权，包含以后创建的对象。数据库列表受连接账号自身可见性限制。
-
-Agent 先调用 `list_databases`，再向 `list_schemas`、`list_tables`、`describe_table`、`db_query`、`db_execute` 或 `db_explain` 传入精确的 `database` 名称。每次请求只选择一个库，不支持 USE 或跨库 SQL；多库省略目标会拒绝，DM8 可推断端点的唯一实际库。只许可一个库时既有省略目标的方式继续可用。范围页支持未保存连接的发现；保存后授权生效。修改默认连接库不会改变对象授权。审批和记住的规则只适用于记录的数据库。此对象选择界面要求 MCP Server 1.0.2 或更新版本。
-
-选择上级包含其当前和未来下级，移入上级会合并重复的子项；缩小范围时先移除上级再选择下级。Ctrl / ⌘ 或 Shift 多选，方向键导航、空格选择。树按库展开时读取结构，连接或远端对象变化后用“刷新对象”重读。表较多时可直接选择库或模式，当前版本未提供树内搜索或虚拟滚动。
-
-选择器生成含数据库的资源键：整库为 `db/<库>/*`，模式为 `db/<库>/<模式>.*`，表为 `db/<库>/<模式>.<表>`，列为 `db/<库>/<模式>.<表>.<列>`。名称内的点号、百分号、通配符及斜线等保留字符自动编码。旧 `schema.table[.column]` 规则仍对已配置数据库统一生效；编辑旧单库／部分库实例时，界面把它们转换为对应库的明确资源键。实体绑定的 `*` 只表示实例范围内的全部对象。
-
-Agent 写入返回 `pending` 时，在“待审批”查看 SQL、参数、来源和范围，选择允许一次、拒绝或记住明确的表与操作范围。`always` 策略需显式调整后才能记住。随后 Agent 用原 `request_id` 调用 `approval_status` / `resume_request`，不能替换 SQL。并发重试只认领一次；提交结果未知的写入不自动重放，应先检查目标库。
-
-实例 Mask 始终先于实体追加规则；禁止列在条件与表达式中也不可访问。敏感来源参与派生表达式时整值替换。不提供独立的内置内容检测，按需使用 Mask 的正则替换。用规则预览和实体模拟器检查实际 MCP Server 行为；模拟器不执行 SQL。
-
-“可访问的表与字段”限制数据范围：例如 `public.orders` 允许该表，`public.users.email` 允许该字段，`*` 表示当前实例内全部数据；能否查询或写入还取决于操作权限。新建实例、实体绑定和模板的 Mask 均为空，不预置任何规则；只有手动添加或显式选择模板时才带入规则。规则预览需要指定 Schema、表、字段和示例值，只应用匹配来源的规则。
-
-内容替换统一配置在 Mask 中：字段或模式指定匹配范围，处理方式选择“正则替换”，再填写表达式与替换值。升级后旧的内容检测开关不再生效；已有显式 Mask 规则保留，可在 Mask 页删除不需要的旧规则。
-
-SQL 支持范围见 [依赖与限制](dependencies.md)。PostgreSQL Explain 只返回不执行的结构与估算；其他方言不开放计划工具。DM 本版原生库不能强制并验证客户端 TLS，仅接受显式关闭 TLS 的本机或受保护隧道连接。
-
-## 运行与系统服务
-
-携带 MCP Server 的客户端在设置中显示随包程序版本，可显式执行升级。升级协调器停止进程、创建安全快照、部署新版并恢复运行状态；普通启动和配置切换不执行升级或备份。
-
-远程 MCP Server、自选的外部程序及纯客户端不自动替换，需先断开，在配置编辑中选择新版程序；发现新版本后，在“配置与 MCP Server”页点击“升级 MCP Server”。新客户端要求 MCP Server 至少 1.0.2，版本不足时显示明确提示并阻止业务请求；可在设置查看运行版本与随包版本。升级失败时查看诊断和保留的恢复快照，不反复卸载或删除数据。
-
-本机托管随客户端生命周期管理，已有 MCP Server 只连接。系统登录自启动、关闭到托盘与系统服务自启动分别设置。
-
-桌面只管理本机后台进程，暂不提供 Windows 服务化。独立 MCP Server 的 CLI 仍提供平台服务管理，适用于需要自行维护的部署；这类部署在桌面中使用已有 MCP Server 的 HTTP 配置。
+Standalone example:
 
 ```sh
-dbmcp --data-dir <目录> service install
-dbmcp --data-dir <目录> service start
-dbmcp --data-dir <目录> service status
-dbmcp --data-dir <目录> service stop
-dbmcp --data-dir <目录> service uninstall
+dbmcp --data-dir <dedicated-directory> init
+dbmcp --data-dir <dedicated-directory> runtime upgrade --start
+dbmcp --data-dir <dedicated-directory> run status
 ```
 
-Windows 未指定数据目录的服务命令默认系统目录。卸载服务保留数据和稳定程序。桌面卸载不停止外部 MCP Server；保留应用数据时已安装的 Bridge 凭据文件继续存在。
+Data and installed application files are separate. Default data locations are `%LOCALAPPDATA%\DBMCP\server` on Windows, `~/Library/Application Support/DBMCP/server` on macOS, and `$XDG_DATA_HOME/dbmcp/server` or `~/.local/share/dbmcp/server` on Linux. Deployment settings are in `deployment.toml`; stop the MCP Server before editing listeners.
 
-## 升级与恢复
+For an existing MCP Server, enter its loopback Admin URL and administrator credential in the configuration editor. Use an SSH tunnel for remote administration. This mode only connects and never controls the process. Configurations & MCP Server shows the current target rather than parallel connection tabs.
 
-选定新版程序后点击“升级 MCP Server”（仅有可用更新时显示），或运行新构建：
+## Configurations and sessions
+
+A profile stores its connection target, credentials, and client preferences. First launch creates a disconnected `default` profile. The sidebar menu switches profiles; its settings action opens Configurations & MCP Server for full management. The active profile uses the accent color. Disconnect before editing a connected profile. Deleting a profile does not delete MCP Server data. Switching closes unsaved forms and clears caches and subscriptions; active operations must finish first.
+
+Theme, notifications, close behavior, and automatic lightweight mode are per profile. Login startup, installation location, and application version are shared. Business data and permissions live in the MCP Server, so profiles targeting the same MCP Server share its business state. Administrator credentials are stored separately by profile in the OS keyring.
+
+Local management requires MCP Server 1.0.11 or later. Activating the profile starts or attaches to an identity-matched background process; switching away, disconnecting, or exiting stops it. Manual start, stop, and restart remain available in settings. The desktop does not install, migrate, or uninstall system services. Connect to services or terminal-controlled foreground processes using an existing MCP Server HTTP configuration. HTTP connections, including `127.0.0.1`, never control processes. Tray and lightweight mode keep the local MCP Server running. Forced termination cannot guarantee graceful shutdown.
+
+Legacy connections and preferences are preserved. Old lifecycle toggles in `profiles.json` are ignored: local management owns startup and shutdown, while HTTP remains independent. Legacy `profile.json` can still migrate into `default`.
+
+## Connecting Codex / Claude Code
+
+In Settings → Agent integration, choose installation, user / project scope, HTTP / STDIO, and an entry name, then preview. No entity or instance selection is required beforehand.
+
+- Codex user configuration: `$CODEX_HOME/config.toml`, or `~/.codex/config.toml` when unset. Project configuration: `.codex/config.toml`, loaded only for trusted projects.
+- Claude Code user configuration: `~/.claude.json`. Project configuration: `.mcp.json`, requiring Claude Code's own initial confirmation.
+- HTTP uses authentication fields supported by each client. STDIO uses a stable `dbmcp` path and restricted credential file. Client-only installations can select a separately installed executable.
+
+Installation issues a dedicated access credential, backs up the original file, and saves atomically. On first MCP access with that credential, the MCP Server atomically creates a pending entity and returns `entity_pending`. Database discovery and data tools remain unavailable until approval. In entity registration, select instances, resources, operations, and limits. Approval commits all bindings and entity activation in one transaction; failure leaves no partial grants. Reconnect with the original credential afterward.
+
+Identity follows the independent random credential, not mutable or spoofable names and IPs. Retries, concurrent requests, and reconnections with the same credential create only one entity. Copied configurations share identity; install separately to distinguish agents. Unknown requests cannot register anonymously. Denial revokes the registration credential, so reconnecting cannot register again.
+
+Installation failure revokes the new credential. Unrelated entries with the same name are not overwritten. Changed files require another preview. Unrelated JSON values, TOML sections and comments, and original line endings are preserved. Do not commit project files containing credentials.
+
+Restart the agent or reconnect MCP after installation. Tools include `list_instances`, `list_databases`, `list_schemas`, `list_tables`, `describe_table`, `db_query`, `db_execute`, `db_explain`, `approval_status`, and `resume_request`.
+
+Removal deletes only this tool's unchanged entry and revokes its installation credential. Modified entries remain, but their old credential is still revoked. Rotating other credentials requires updating the corresponding agent configuration. Tokens are shown only when issued.
+
+For other clients, issue or rotate a credential in Entities, enter the MCP URL, and export generic MCP configuration. The JSON uses `mcpServers` and HTTP `headers` for compatible clients; follow the target client's import instructions. Exports contain the current entity credential, use private permissions, and back up existing files before overwrite. Permissions, rotation, and revocation remain managed by the MCP Server.
+
+## Permissions, approvals, and Mask
+
+Resources and operations are the intersection of instance and binding policy. Both source CIDRs must match; limits use the smaller value. Authorized reads are allowed and writes require approval by default. DDL, procedures, dynamic SQL, multiple statements, and unknown provenance are denied. Approval cannot override hard denials.
+
+An instance may grant one, selected, or all databases. PostgreSQL and SQL Server use database → schema → table → column. MySQL combines database and schema, displaying database → table → column. A DM8 endpoint exposes one actual database, with user / schema → table → column beneath it. Empty schemas can be authorized, including future objects. Discovery is limited by the database account's visibility.
+
+Agents call `list_databases`, then pass an exact `database` to catalog, query, execution, or Explain tools. Requests target one database; USE and cross-database SQL are unsupported. Multi-database requests without a target are rejected. A single authorized database can still be inferred, and DM8 can infer its endpoint's sole database. Scope discovery works before saving, but grants take effect only after save. Changing the default connection database does not change resource grants. Approvals and remembered rules apply only to their recorded database. The object selector requires MCP Server 1.0.2 or later.
+
+Selecting a parent includes its current and future descendants and merges duplicate children. Remove the parent before granting a narrower subset. Use Ctrl / Command or Shift for multiselect, arrows for navigation, and Space to select. Expanding a database loads its catalog; refresh objects after connection or catalog changes. For large catalogs, select a database or schema; in-tree search and virtualization are not provided.
+
+Resource keys are `db/<database>/*` for a database, `db/<database>/<schema>.*` for a schema, `db/<database>/<schema>.<table>` for a table, and `db/<database>/<schema>.<table>.<column>` for a column. Reserved characters such as dots, percent signs, wildcards, and slashes in names are encoded. Legacy `schema.table[.column]` rules retain their meaning across configured databases. Editing old single / selected-database instances converts them to explicit database-qualified keys. Binding `*` means all objects within the instance's scope only.
+
+When a write returns `pending`, inspect its SQL, parameters, source, and scope in Approvals. Allow once, deny, or remember an explicit table and operation scope. An `always` policy must be explicitly changed before remembering a rule. The agent resumes with the original `request_id` using `approval_status` / `resume_request`; it cannot substitute SQL. Concurrent retries claim execution once. Writes with unknown commit results are not replayed automatically; inspect the target database first.
+
+Instance Mask rules run before additional entity rules. Denied columns cannot be accessed in predicates or expressions. Derived expressions involving sensitive sources receive whole-value replacement. There is no separate built-in content detector; use Mask regular expressions as needed. Rule previews and the entity simulator use actual MCP Server logic; simulation does not execute SQL.
+
+Resource scope limits data: `public.orders` grants a table, `public.users.email` grants a column, and `*` grants all data within the current instance. SQL operations require separate permission. New instances, bindings, and templates have no preset Mask rules. Add rules manually or explicitly copy a template. Previews require schema, table, column, and sample value, and apply only matching source rules.
+
+For content replacement, select a field or pattern, choose regular expression replacement, and enter the expression and replacement. Legacy content detection toggles are no longer used. Explicit Mask rules are retained and can be removed in the Mask editor.
+
+See [Dependencies and limitations](dependencies.md) for SQL scope. PostgreSQL Explain returns plans and estimates without execution; other dialects do not expose it. The native DM driver cannot enforce and verify client TLS; only explicitly TLS-disabled local or protected-tunnel connections are accepted.
+
+## Runtime and system services
+
+Bundled clients show the packaged executable version and offer explicit upgrades. The coordinator stops the managed process, creates a safety snapshot, deploys the new version, and restores running state. Ordinary startup and configuration switching do not upgrade or back up.
+
+Remote MCP Servers and separately selected executables are not replaced automatically. Disconnect and select a newer executable in the configuration editor, then use the MCP Server upgrade action when an update is available. Business requests require MCP Server 1.0.2 or later; local management requires 1.0.11. Settings show running and packaged versions. On upgrade failure, inspect diagnostics and retained snapshots rather than repeatedly uninstalling or deleting data.
+
+Local management follows the client lifecycle; existing MCP Servers only connect. Client login startup, closing to tray, and system service startup are separate settings.
+
+The desktop manages local background processes and does not offer Windows service setup. The standalone Go CLI retains platform service management for independently maintained deployments. Connect to these over HTTP in the desktop.
 
 ```sh
-new-dbmcp --data-dir <目录> runtime upgrade
+dbmcp --data-dir <directory> service install
+dbmcp --data-dir <directory> service start
+dbmcp --data-dir <directory> service status
+dbmcp --data-dir <directory> service stop
+dbmcp --data-dir <directory> service uninstall
 ```
 
-升级停止受管进程、备份、部署新版本，更新既有服务注册并恢复原模式。稳定入口指向 `current.json`，旧程序和 `previous.json` 保留。迁移到空目录可用 `runtime migrate --to <目录> --start`；加 `--service` 转为服务。源目录保持停机。
+Windows service commands without a data directory use the system location. Uninstalling a service retains data and stable executables. Uninstalling the desktop does not stop external MCP Servers; retained application data may still include installed Bridge credential files.
 
-完整备份包含 SQLite 一致性快照、配套密钥、管理员凭据及哈希清单；不执行定时备份，日常启动和配置切换不创建备份；手动备份及升级、恢复、结构迁移前的安全快照保留。配置导出不含秘密，导入创建新的停用对象，不覆盖现有状态。
+## Upgrades and recovery
+
+Choose a newer executable and use the upgrade action, shown only when an update is available, or run the new build:
 
 ```sh
-dbmcp --data-dir <目录> backup
-dbmcp --data-dir <目录> restore <备份目录>
+new-dbmcp --data-dir <directory> runtime upgrade
 ```
 
-恢复必须停机，验证清单与 SQLite 完整性，恢复前保存现状快照。升级失败后检查服务 / `server.log`，使用错误中保留的快照明确恢复；不自动回滚可能已被 MCP 客户端使用的状态。需要回退程序时，停机后执行 `runtime rollback-program`；既有系统服务需重装以跟随程序路径。不要将新 schema 直接交给旧程序。
+Upgrade stops the managed process, backs up, deploys, updates existing service registration, and restores the original mode. The stable launcher follows `current.json`; old executables and `previous.json` remain. Use `runtime migrate --to <empty-directory> --start` to move to an empty directory, optionally with `--service` for a service. The source stays stopped.
 
-## 远程部署与故障定位
+Full backups contain a consistent SQLite snapshot, matching keys, administrator credentials, and a hash manifest. There are no scheduled, startup, or profile-switch backups. Manual backups and safety snapshots before upgrades, restores, and schema migrations remain. Configuration exports omit secrets; imports create disabled new objects without replacing existing state.
 
-在访问日志中点击某行或“查看详情”，右侧抽屉显示请求概览、完整 SQL、绑定参数、执行摘要、匹配的 Mask 规则与关联事件。可切换上一条／下一条、复制请求 ID、刷新或“导出该请求”；筛选、分页与列表滚动位置保持。抽屉内容独立滚动，标题和操作栏固定，Escape 关闭。
+```sh
+dbmcp --data-dir <directory> backup
+dbmcp --data-dir <directory> restore <backup-directory>
+```
 
-从 1.0.8 起，MCP Server 把数据库请求详情加密保存在状态库，按 30 天审计保留期清理；这份历史不会供 Agent 恢复执行，原执行载荷仍按原规则清理。单次请求导出包含已保存的 SQL 和参数以及关联事件，结果只保存行数、影响行数、字段、截断与错误等摘要，不保存结果行原值。旧请求缺少内容时明确显示“未记录”或“已清理”，不能还原已删除内容。管理操作展示自身审计记录。
+Restore requires shutdown, verifies the manifest and SQLite integrity, and snapshots current state first. After upgrade failure, inspect service / startup logs and explicitly restore from the snapshot identified by the error. State potentially used by MCP clients is not rolled back automatically. To roll back only the executable, stop and run `runtime rollback-program`; reinstall existing services to update their executable paths. Never open a newer schema directly with an older executable.
 
-1.0.8 新建策略默认最多返回 5000 行、10485760 字节；新建连接的 TLS 默认“关闭”。已有实例和模板的显式配置保留。已设置的连接密码固定显示六个黑点作为提示，留空保存会沿用原密码，输入新密码才替换。进入页面或打开弹窗时不自动强调输入框或按钮，Tab 导航仍可用。
+## Remote deployment and troubleshooting
 
-Admin 仅绑定回环，远程管理通过 SSH 隧道；MCP 非回环部署要求 TLS 或明确配置反向代理。客户端 Admin 凭据在系统 keyring 中，Agent 凭据不能调用管理 API。
+Click an access log row or its detail action to open the right-hand drawer with overview, full SQL, bound parameters, execution summary, matched Mask rules, and related events. Navigate adjacent requests, copy IDs, refresh, or export the request without losing filters, pagination, or list position. Only drawer content scrolls; its title and actions stay fixed. Escape closes it.
 
-反向代理部署在 `deployment.toml` 配置 `reverse_proxy = true` 与 `trusted_proxies = ["127.0.0.1/32", "::1/128"]`，仅列出真实代理的 IP / CIDR。代理应覆盖或追加 `X-Forwarded-For`，并限制直连后端。MCP Server 仅当连接来自可信代理时，从右向左剥离可信跳点；缺失、无效或全为可信地址的链拒绝认证。未配置可信代理时忽略转发头，Admin 始终只看真实连接。
+Since 1.0.8, database request details are encrypted in the state store and retained for 30 days. They cannot resume execution; original execution payloads follow their own cleanup. Request exports include retained SQL, parameters, and related events. Results retain row counts, affected counts, columns, truncation, and error summaries, not raw rows. Older missing content is shown as unrecorded or cleaned up and cannot be reconstructed. Management operations display their own audit records.
 
-连接失败先检查版本、驱动清单、地址、运行方式和数据目录。端口占用不会触发杀进程；复制凭据到另一目录不能停止原 MCP Server。设置 → 通用、访问日志页和托盘右键菜单均可导出诊断包；断连仍可导出本地证据，远端日志不可用会注明。MCP Server 主机可执行 `dbmcp --data-dir <目录> diagnostics --out <新文件>.json`。路径、保留规则与定位方式见 [日志与诊断](diagnostics.md)。
+New policies default to 5000 rows and 10485760 bytes; new connections default to TLS off. Existing explicit instance and template settings are preserved. Stored passwords display a fixed six-dot indicator: leaving the field blank retains the password, while entering a new value replaces it. Pages and dialogs do not initially emphasize an input or button; Tab navigation remains available.
 
-首次关闭窗口询问最小化到托盘或直接退出，可勾选“不再提醒”；通用设置中可随时修改。轻量模式在最小化到托盘时释放主窗口及 WebView，打开时重新加载，未保存表单不保留。托盘提供打开主窗口、导出诊断包和退出；也可从开始菜单再次启动来唤回。关闭或退出客户端都不停止独立 MCP Server。
+Admin listens on loopback only; use SSH tunnels remotely. Non-loopback MCP requires TLS or an explicitly configured reverse proxy. Client Admin credentials remain in the OS keyring. Agent credentials cannot call the management API.
+
+For reverse proxies, set `reverse_proxy = true` and `trusted_proxies = ["127.0.0.1/32", "::1/128"]` in `deployment.toml`, listing only actual proxy IPs / CIDRs. Proxies should replace or append `X-Forwarded-For` and restrict direct backend access. Only connections from trusted proxies use the chain, stripping trusted hops from right to left. Missing, invalid, or entirely trusted chains are rejected. Without trusted proxies, forwarding headers are ignored. Admin always checks the real connection.
+
+For connection failures, check versions, drivers, addresses, running mode, and data directory first. Port conflicts never cause arbitrary processes to be killed. Copied credentials in another directory cannot stop the original MCP Server. Export diagnostics from General settings, access logs, or the tray; local evidence remains available while disconnected, and unavailable remote logs are reported. On the host, run `dbmcp --data-dir <directory> diagnostics --out <new-file>.json`. See [Diagnostics](diagnostics.md) for paths and retention.
+
+The first window close asks whether to minimize to tray or exit, with an option to remember the choice; change it later in General settings. Automatic lightweight mode releases the hidden main window and WebView after three minutes in the tray. Reopening reloads the same profile and discards unsaved forms. The tray provides window reopening, immediate lightweight mode, diagnostic export, and exit; launching from the Start menu also restores the window. Independent HTTP-connected MCP Servers remain running when the client closes or exits.

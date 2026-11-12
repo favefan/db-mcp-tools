@@ -1,7 +1,7 @@
-# 补充第三方许可文本
+# Supplemental third-party license texts
 
-这里仅保存已采用依赖的许可文本，不包含参考项目的产品实现。`notices.json` 记录包版本、实际取得的来源、文本哈希与具体限制；构建时校验哈希并附入分发清单。
+This directory contains license texts for adopted dependencies, not product implementations from reference projects. `notices.json` records package versions, retrieved sources, text hashes, and restrictions. Packaging verifies hashes and includes the texts in distribution manifests.
 
-优先使用包自身提供的文件。缺少工作区许可的 Cargo / npm 包，按 Cargo VCS 元数据或 npm `gitHead` 取得同一提交的许可。`selectors` 源文件头明确采用 MPL 2.0，附 Mozilla 官方完整条款及精确源码归档地址。
+Prefer files supplied by each package. When a Cargo / npm package lacks a workspace license, retrieve the license at the same commit using Cargo VCS metadata or npm `gitHead`. The `selectors` source header explicitly uses MPL 2.0; the full Mozilla terms and exact source archive URL are included.
 
-`react-remove-scroll-bar` 2.3.8 只声明 MIT，没有提供上游许可文件，其 npm `gitHead` 在声明的仓库不可用；附标准 SPDX MIT 文本与包中作者元数据，保留复核标记，不伪造版权通知。DM 原生模块未发现独立分发许可，单独标识为待确认，不以本项目 MIT 许可覆盖它。
+`react-remove-scroll-bar` 2.3.8 declares MIT but supplies no upstream license file, and its npm `gitHead` is unavailable in the declared repository. A standard SPDX MIT text and package author metadata are included with a review marker; no copyright notice is fabricated. No independent redistribution license has been found for the native DM module. Its status is recorded separately and is not covered by this project's MIT license.

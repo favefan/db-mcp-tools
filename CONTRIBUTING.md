@@ -1,18 +1,18 @@
-# 参与贡献
+# Contributing
 
-先阅读 [开发指南](docs/development.md)，按前端预览、Server 或完整桌面选择环境。无需安装编码 Agent；`AGENTS.md` 只为自动化协作提供同一套工程边界。
+Read the [development guide](docs/development.md) and choose frontend preview, MCP Server, or full desktop setup. A coding agent is not required; `AGENTS.md` describes the same engineering boundaries for automated collaboration.
 
-## 问题与修改
+## Issues and changes
 
-- 普通问题请描述版本、OS / 架构、复现步骤、预期与实际结果，附经检查的最小日志。安全问题按 [安全说明](SECURITY.md) 处理。
-- 从最新 `main` 创建主题分支，使用自己的 Git 身份。不要修改其他贡献者的文件、全局 Git 配置或无关历史。
-- 修改前阅读相关架构和调用链。身份、权限、审批、Mask 和 SQLite 逻辑统一在 Server；Rust 负责桌面和本机集成。
-- 使用锁文件安装，不混用 npm / yarn，不顺手升级依赖或重排无关文件。提交使用 `feat:`、`fix:`、`docs:`、`chore:` 等前缀，按完整能力组织。
+- Include the version, OS / architecture, reproduction steps, expected and actual behavior, and reviewed minimal logs. Follow the [security policy](SECURITY.md) for vulnerabilities.
+- Create a topic branch from the latest `main` and use your own Git identity. Preserve other contributors' work, global Git configuration, and unrelated history.
+- Read the relevant architecture and call chain before editing. Identity, permissions, approvals, Mask, and SQLite logic belong to the MCP Server; Rust handles desktop and local integration.
+- Install with the lockfile. Do not mix npm / yarn, upgrade unrelated dependencies, or reformat unrelated files. Use commit prefixes such as `feat:`, `fix:`, `docs:`, and `chore:`, grouping commits by complete changes.
 
-## 提交前
+## Before submitting
 
-按改动运行开发指南中的必要检查。普通 UI 不要求四库或安装测试；权限、SQL、审批、Mask 和配置保留变更应覆盖相应边界。所有目标数据库测试使用本次测试临时容器，不连接现有业务实例。
+Run the checks relevant to your changes from the development guide. Ordinary UI work does not require all database or installer tests. Cover the affected boundaries when changing permissions, SQL, approvals, Mask, or configuration preservation. All target database tests use temporary containers created for that run, never existing business databases.
 
-PR 描述说明问题、最终行为、验证命令及实际结果，并列出跳过或未验证项。涉及依赖时说明许可和平台影响；API 模型变化需运行 `pnpm generate:api` 并提交生成文件。
+Describe the problem, final behavior, validation commands and actual results in the PR, including skipped or unverified checks. Explain licensing and platform effects for dependency changes. Run `pnpm generate:api` and commit the generated files when API models change.
 
-GitHub 基础工作流仅运行 Windows 检查。macOS / Linux 的本地结果请注明系统版本、架构和具体命令，不能用 Windows 通过推断。合入 `main` 后删除自己的工作分支。
+GitHub checks run on Windows only. Report the OS version, architecture, and commands for local macOS / Linux results; a Windows result does not establish support elsewhere. Delete your topic branch after merging into `main`.
