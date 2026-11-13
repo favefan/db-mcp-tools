@@ -199,10 +199,11 @@ aside {
   align-items: center;
   height: 52px;
   flex-shrink: 0;
-  padding: 0 var(--space-1);
+  padding: 0 var(--space-2);
   user-select: none;
 }
 .brand-mark {
+  width: 17px;
   color: var(--accent);
   display: grid;
   place-items: center;
@@ -221,7 +222,7 @@ nav {
   align-content: start;
   gap: var(--space-1);
   overflow-y: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
 }
 nav button,
 .settings-button {
@@ -281,14 +282,64 @@ nav .back-button {
   margin-bottom: var(--space-2);
   color: var(--text);
 }
+.sidebar-bottom > [data-radix-popper-content-wrapper] {
+  min-width: 0;
+}
+.profile-switcher {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-2);
+}
+.theme-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  position: relative;
+  padding: 3px;
+  margin-bottom: var(--space-2);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.theme-pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  background: var(--panel);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px #00000012;
+  transition: transform 160ms ease;
+}
+.theme-switch button {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+.theme-switch button[aria-pressed="true"] {
+  color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-pill {
+    transition: none;
+  }
+}
 .server-profile {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   border: 0;
-  border-top: 1px solid var(--line);
+  border-radius: var(--radius-control);
   background: none;
-  padding: var(--space-3) var(--space-2) var(--space-1);
+  padding: var(--space-2);
+  min-height: var(--control-height);
   width: 100%;
   text-align: left;
 }

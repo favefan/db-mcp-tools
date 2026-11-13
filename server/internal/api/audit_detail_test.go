@@ -27,7 +27,7 @@ func TestAuditDetailsAreAdminOnlyAndDeniedQueriesAreTraceable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	q := model.Query{InstanceID: "missing", SQL: "SELECT 'audit-private-sql'", Params: []any{json.Number("9007199254740993")}, Tool: "db_query", ClientRequestID: "rejected"}
+	q := model.Query{InstanceID: "missing", SQL: "SELECT 'audit-private-sql'", Params: []any{json.Number("9007199254740993")}, Tool: "db_query", ClientRequestID: "rejected", AgentReason: strings.Repeat("理", 105)}
 	if _, err = a.Query(t.Context(), model.Identity{EntityID: e.ID, CredentialID: c.ID, Source: "127.0.0.1"}, q); err == nil {
 		t.Fatal("unbound query accepted")
 	}
@@ -50,7 +50,7 @@ func TestAuditDetailsAreAdminOnlyAndDeniedQueriesAreTraceable(t *testing.T) {
 		}
 		if tc.status == 200 {
 			var v model.AuditDetail
-			if json.Unmarshal(out.Body.Bytes(), &v) != nil || v.Request == nil || v.Request.SQL != q.SQL || v.Request.Status != "denied" || v.Request.ParameterJSON != `[9007199254740993]` || out.Header().Get("Cache-Control") != "no-store" {
+			if json.Unmarshal(out.Body.Bytes(), &v) != nil || v.Request == nil || v.Request.SQL != q.SQL || v.Request.Status != "denied" || v.Request.AgentReason != strings.Repeat("理", 100) || v.Request.ParameterJSON != `[9007199254740993]` || out.Header().Get("Cache-Control") != "no-store" {
 				t.Fatal("denied detail missing", out.Body.String())
 			}
 			if strings.Contains(out.Body.String(), token) {

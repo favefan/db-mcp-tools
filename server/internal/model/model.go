@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const Version = "1.0.13"
+const Version = "1.0.14"
 const APIVersion = 1
 
 func ID() string {
@@ -315,6 +315,7 @@ type Query struct {
 	Params          []any  `json:"params,omitempty"`
 	ClientRequestID string `json:"client_request_id"`
 	Tool            string `json:"tool,omitempty"`
+	AgentReason     string `json:"agent_reason,omitempty" jsonschema:"Explain the request purpose and action in at most 100 characters. Supply this for requests that may require approval; omission does not block execution."`
 }
 
 func (q *Query) UnmarshalJSON(b []byte) error {
@@ -349,6 +350,7 @@ type Request struct {
 	CreatedAt        string   `json:"created_at"`
 	ExpiresAt        string   `json:"expires_at"`
 	Reason           string   `json:"reason,omitempty"`
+	AgentReason      string   `json:"agent_reason,omitempty"`
 	Source           string   `json:"source"`
 	InstanceRevision int      `json:"instance_revision"`
 	BindingRevision  int      `json:"binding_revision"`
@@ -365,15 +367,16 @@ type Configuration struct {
 	Templates []Template `json:"templates"`
 }
 type Audit struct {
-	ID         int64  `json:"id"`
-	Time       string `json:"time"`
-	EntityID   string `json:"entity_id"`
-	InstanceID string `json:"instance_id"`
-	RequestID  string `json:"request_id"`
-	Action     string `json:"action"`
-	Decision   string `json:"decision"`
-	Detail     string `json:"detail"`
-	DurationMS int64  `json:"duration_ms"`
+	ID            int64  `json:"id"`
+	Time          string `json:"time"`
+	EntityID      string `json:"entity_id"`
+	InstanceID    string `json:"instance_id"`
+	RequestID     string `json:"request_id"`
+	Action        string `json:"action"`
+	Decision      string `json:"decision"`
+	Detail        string `json:"detail"`
+	DurationMS    int64  `json:"duration_ms"`
+	RequestStatus string `json:"request_status,omitempty"`
 }
 
 // RequestDetail is an administrator-only encrypted history snapshot. It never
@@ -391,6 +394,7 @@ type RequestDetail struct {
 	Source          string            `json:"source"`
 	TraceID         string            `json:"trace_id"`
 	SQL             string            `json:"sql"`
+	AgentReason     string            `json:"agent_reason,omitempty"`
 	ParameterJSON   string            `json:"parameter_json"`
 	Status          string            `json:"status"`
 	Operation       string            `json:"operation"`

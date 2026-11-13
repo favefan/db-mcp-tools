@@ -144,6 +144,7 @@ export function Approvals({
                     </>
                   )}
                 </p>
+                {v.agent_reason && <p>请求说明（Agent 提供）：{v.agent_reason}</p>}
                 <div className="approval-footer">
                   <small>
                     {["pending", "approved", "executing"].includes(v.status) ? (
@@ -204,6 +205,9 @@ export function Approvals({
               ["insert", "update", "delete"].includes(detail.operation) && (
                 <p>写入提醒：成功执行后不会自动撤销，请在批准前核对 SQL、参数和目标范围。</p>
               )}
+            {(detail.agent_reason || detail.query?.agent_reason) && (
+              <p>请求说明（Agent 提供）：{detail.agent_reason || detail.query?.agent_reason}</p>
+            )}
             <pre className="sql">{detail.query?.sql ?? "原始载荷已清理"}</pre>
             {detail.query?.params && (
               <details>

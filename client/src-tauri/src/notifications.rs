@@ -28,7 +28,7 @@ pub fn sync_notifications(
     pending_ids: Vec<String>,
     session: crate::profiles::Stamp,
 ) -> Result<(), String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "同步审批通知")?;
     if pending_ids.len() > 1000
         || pending_ids
             .iter()
@@ -56,6 +56,7 @@ pub async fn changed(
         return;
     }
     let mut pending = HashSet::new();
+    let mut reasons = std::collections::HashMap::new();
     for path in ["/admin/v1/approvals", "/admin/v1/registrations"] {
         let response = request(&state, profile, token, "GET", path, None).await;
         let values = match response {
@@ -72,6 +73,9 @@ pub async fn changed(
             if value["status"] == "pending" {
                 if let Some(id) = value["id"].as_str() {
                     pending.insert(id.to_string());
+                    if let Some(reason) = value["agent_reason"].as_str().filter(|r| !r.is_empty()) {
+                        reasons.insert(id.to_string(), reason.to_string());
+                    }
                 }
             }
         }
@@ -82,21 +86,34 @@ pub async fn changed(
     if !crate::profiles::matches(&state, stamp) {
         return;
     }
-    let added = state
-        .notifications
-        .lock()
-        .map(|mut n| n.update(pending))
-        .unwrap_or(0);
-    if added > 0 {
+    let messages = {
+        let Ok(mut notifications) = state.notifications.lock() else {
+            return;
+        };
+        let messages = pending
+            .difference(&notifications.seen)
+            .map(|id| {
+                reasons
+                    .get(id)
+                    .map(|reason| format!("请求说明（Agent 提供）：{reason}"))
+                    .unwrap_or_else(|| "新请求等待处理，请从托盘打开主窗口。".into())
+            })
+            .collect::<Vec<_>>();
+        if notifications.update(pending) == 0 {
+            return;
+        }
+        messages
+    };
+    for message in &messages {
         let result = app
             .notification()
             .builder()
             .title("DB MCP Tools · 操作待审批")
-            .body(format!("{added} 条新请求等待处理，请从托盘打开主窗口。"))
+            .body(message)
             .show();
         diagnostics::event(
             "notification.sent",
-            serde_json::json!({"count":added,"succeeded":result.is_ok(),"lightweight":true}),
+            serde_json::json!({"succeeded":result.is_ok(),"lightweight":true}),
         );
     }
 }

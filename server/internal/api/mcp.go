@@ -81,7 +81,7 @@ func MCP(a *app.App, resolvers ...SourceResolver) http.Handler {
 	}))
 }
 func mcpServer(a *app.App, id model.Identity) *mcp.Server {
-	s := mcp.NewServer(&mcp.Implementation{Name: "db-mcp-tools", Version: model.Version}, &mcp.ServerOptions{Instructions: "Database access is scoped to this entity. Call list_databases for an instance and pass its exact database name to schema and query tools; database is required for multi-database instances. Each request targets one database; cross-database SQL and USE are unsupported. Writes may return pending. Ask the administrator to approve, then call approval_status and resume_request with the same request_id. Never replace an approved SQL payload. Always supply a unique client_request_id per operation and reuse it on retries."})
+	s := mcp.NewServer(&mcp.Implementation{Name: "db-mcp-tools", Version: model.Version}, &mcp.ServerOptions{Instructions: "Database access is scoped to this entity. Call list_databases for an instance and pass its exact database name to schema and query tools; database is required for multi-database instances. Each request targets one database; cross-database SQL and USE are unsupported. For requests that may require approval, include agent_reason: an explanation of the purpose and action in at most 100 characters. Missing explanation does not block a request. Writes may return pending. Ask the administrator to approve, then call approval_status and resume_request with the same request_id. Never replace an approved SQL payload. Always supply a unique client_request_id per operation and reuse it on retries."})
 	mcp.AddTool(s, &mcp.Tool{Name: "list_instances", Description: "List the database instances bound to this identity."}, func(ctx context.Context, _ *mcp.CallToolRequest, _ empty) (*mcp.CallToolResult, any, error) {
 		v, err := a.VisibleInstances(id)
 		if err != nil {
@@ -141,7 +141,7 @@ func mcpServer(a *app.App, id model.Identity) *mcp.Server {
 		return nil, map[string]any{"columns": out}, nil
 	})
 	for _, name := range []string{"db_query", "db_execute", "db_explain"} {
-		mcp.AddTool(s, &mcp.Tool{Name: name, Description: map[string]string{"db_query": "Execute a single supported SELECT with mandatory authorization, masking and limits.", "db_execute": "Request a single authorized INSERT, UPDATE or DELETE. Approval may be required; repeated client_request_id never executes twice.", "db_explain": "Obtain a non-executing PostgreSQL SELECT plan. Only structural estimates are returned; authorization and masks still apply."}[name]}, func(ctx context.Context, _ *mcp.CallToolRequest, in model.Query) (*mcp.CallToolResult, any, error) {
+		mcp.AddTool(s, &mcp.Tool{Name: name, Description: map[string]string{"db_query": "Execute a single supported SELECT with mandatory authorization, masking and limits.", "db_execute": "Request a single authorized INSERT, UPDATE or DELETE. Approval may be required; repeated client_request_id never executes twice.", "db_explain": "Obtain a non-executing PostgreSQL SELECT plan. Only structural estimates are returned; authorization and masks still apply."}[name] + " Include agent_reason (at most 100 characters) explaining purpose and action when approval may be needed; omission is non-blocking."}, func(ctx context.Context, _ *mcp.CallToolRequest, in model.Query) (*mcp.CallToolResult, any, error) {
 			in.Tool = name
 			v, err := a.Query(ctx, id, in)
 			return nil, v, err

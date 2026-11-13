@@ -415,7 +415,7 @@ func Admin(a *app.App, stop func(), mode string) http.Handler {
 				*s = v.UTC().Format(time.RFC3339)
 			}
 		}
-		v, err := s.AuditsRange(q.Get("entity_id"), q.Get("instance_id"), q.Get("decision"), before, from, to)
+		v, err := s.AuditRequestsRange(q.Get("entity_id"), q.Get("instance_id"), q.Get("decision"), before, from, to)
 		if err == nil {
 			write(w, v)
 		}

@@ -79,7 +79,7 @@ export function RequestDetails({
   const index = records.findIndex((v) => v.id === event.id);
   const data = q.data;
   const request = data?.request;
-  const status = request?.status ?? event.decision;
+  const status = request?.status ?? event.request_status ?? event.decision;
   const exportRequest = () => {
     if (!data) return;
     const url = URL.createObjectURL(
@@ -177,6 +177,7 @@ export function RequestDetails({
                     ["实例", request?.instance_name || event.instance_id],
                     ["数据库", request?.database],
                     ["工具／操作", request?.tool || event.action],
+                    ["请求说明（Agent 提供）", request?.agent_reason],
                     ["诊断 ID", request?.trace_id],
                   ]}
                 />

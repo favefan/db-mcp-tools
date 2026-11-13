@@ -6,10 +6,11 @@ use tauri::{Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 pub const AUTO_LIGHTWEIGHT_DELAY: Duration = Duration::from_secs(180);
-pub const TRAY_ITEMS: [(&str, &str); 4] = [
+pub const TRAY_ITEMS: [(&str, &str); 5] = [
     ("show", "打开主窗口"),
     ("lightweight", "轻量模式"),
     ("diagnostics", "导出诊断包"),
+    ("about", "关于"),
     ("quit", "退出"),
 ];
 
@@ -19,6 +20,7 @@ pub struct WindowState {
     deadline: Option<Instant>,
     active: bool,
     pub toggle: Option<CheckMenuItem<tauri::Wry>>,
+    about_requested: bool,
 }
 impl WindowState {
     fn cancel(&mut self) {
@@ -208,7 +210,7 @@ pub fn close_requested(window: &tauri::Window) {
 }
 
 #[tauri::command]
-pub fn set_desktop_preferences(
+pub async fn set_desktop_preferences(
     app: tauri::AppHandle,
     state: State<'_, Desktop>,
     close_behavior: preferences::CloseBehavior,
@@ -217,10 +219,7 @@ pub fn set_desktop_preferences(
     notifications: Option<bool>,
     session: profiles::Stamp,
 ) -> Result<preferences::Preferences, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let _guard = state.operations.write("保存外观与行为").await?;
     if !profiles::matches(&state, &session) {
         return Err("会话已改变".into());
     }
@@ -261,10 +260,7 @@ pub async fn confirm_close(
     remember: bool,
     session: Option<profiles::Stamp>,
 ) -> Result<(), String> {
-    let guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let guard = state.operations.write("处理窗口关闭").await?;
     if let Some(stamp) = session {
         if !profiles::matches(&state, &stamp) {
             return Err("会话已改变，请重新关闭窗口".into());
@@ -306,11 +302,27 @@ pub async fn confirm_close(
     receive.await.map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+pub fn take_about_request(state: State<'_, Desktop>) -> Result<bool, String> {
+    let mut windows = state.windows.lock().map_err(|e| e.to_string())?;
+    Ok(std::mem::take(&mut windows.about_requested))
+}
+
 pub fn tray_action(app: &tauri::AppHandle, id: &str) {
     match id {
         "show" => {
             let result = show_main(app);
             diagnostics::result("tray.open_result", &result)
+        }
+        "about" => {
+            if let Ok(mut windows) = app.state::<Desktop>().windows.lock() {
+                windows.about_requested = true;
+            }
+            let result = show_main(app);
+            if result.is_ok() {
+                let _ = app.emit("open-about", ());
+            }
+            diagnostics::result("tray.about_result", &result);
         }
         "lightweight" => {
             let enabled = !app

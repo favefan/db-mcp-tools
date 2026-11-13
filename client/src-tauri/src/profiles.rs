@@ -221,11 +221,9 @@ pub fn matches(state: &Desktop, stamp: &Stamp) -> bool {
 pub fn operation<'a>(
     state: &'a Desktop,
     session: &Stamp,
-) -> Result<tokio::sync::RwLockReadGuard<'a, ()>, String> {
-    let guard = state
-        .operations
-        .try_read()
-        .map_err(|_| "正在切换配置或退出，请稍候")?;
+    name: &str,
+) -> Result<crate::operations::Permit<'a, tokio::sync::RwLockReadGuard<'a, ()>>, String> {
+    let guard = state.operations.try_read(name)?;
     if !matches(state, session) {
         return Err("会话已改变，请重新打开当前配置的操作".into());
     }
@@ -501,10 +499,7 @@ pub async fn switch_profile(
     id: String,
     connect_now: bool,
 ) -> Result<View, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请完成后再切换配置")?;
+    let _guard = state.operations.write("切换配置").await?;
     let p = state
         .catalog
         .lock()
@@ -556,10 +551,7 @@ pub async fn disconnect_session(
     state: State<'_, Desktop>,
     session: Stamp,
 ) -> Result<View, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请完成后再断开")?;
+    let _guard = state.operations.write("断开配置").await?;
     if !matches(&state, &session) {
         return Err("会话已改变".into());
     }
@@ -576,10 +568,7 @@ pub async fn save_profile(
     mut profile: Profile,
     token: Option<String>,
 ) -> Result<View, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let _guard = state.operations.write("保存配置").await?;
     let fresh = profile.id.is_empty();
     if fresh {
         profile.id = uuid::Uuid::new_v4().to_string()
@@ -685,15 +674,12 @@ fn same_path(a: &str, b: &str) -> bool {
     }
 }
 #[tauri::command]
-pub fn delete_profile(
+pub async fn delete_profile(
     app: tauri::AppHandle,
     state: State<'_, Desktop>,
     id: String,
 ) -> Result<View, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let _guard = state.operations.write("删除配置").await?;
     let s = state.session.lock().map_err(|e| e.to_string())?;
     if s.profile.as_ref().is_some_and(|p| p.id == id) && (s.connected || s.owned.is_some()) {
         return Err("请先断开此配置".into());
@@ -809,10 +795,7 @@ pub async fn boot(app: tauri::AppHandle) {
 }
 pub async fn exit(app: tauri::AppHandle, leave_running: bool) -> Result<(), String> {
     let state = app.state::<Desktop>();
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请完成后退出")?;
+    let _guard = state.operations.write("退出并停止托管 MCP Server").await?;
     begin(&app)?;
     let result = if leave_running {
         Ok(())
@@ -834,10 +817,7 @@ pub async fn connect_current(
     session: Stamp,
     token: Option<String>,
 ) -> Result<Value, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let _guard = state.operations.write("连接 MCP Server").await?;
     if !matches(state, &session) {
         return Err("会话已改变".into());
     }
@@ -1001,8 +981,8 @@ mod tests {
         save(&dir.path().join("profiles.json"), &store).unwrap();
         assert_eq!(load(dir.path()).unwrap().profiles[0].id, p.id);
     }
-    #[test]
-    fn operation_gate_rejects_stale_and_busy_sessions() {
+    #[tokio::test]
+    async fn operation_gate_rejects_stale_and_busy_sessions() {
         let state = Desktop {
             session: std::sync::Mutex::new(Runtime {
                 profile: Some(profile("first")),
@@ -1010,7 +990,7 @@ mod tests {
                 ..Default::default()
             }),
             catalog: std::sync::Mutex::new(Store::default()),
-            operations: tokio::sync::RwLock::new(()),
+            operations: crate::operations::Operations::default(),
             events: tokio::sync::watch::channel(()).0,
             exiting: std::sync::atomic::AtomicBool::new(false),
             preferences: std::sync::Mutex::new(preferences::Preferences::default()),
@@ -1022,20 +1002,20 @@ mod tests {
             profile_id: "first".into(),
             generation: 4,
         };
-        let operation = operation(&state, &stamp).unwrap();
-        assert!(state.operations.try_write().is_err());
+        let operation = operation(&state, &stamp, "读取状态").unwrap();
+        assert!(state.operations.try_read("并行读取").is_ok());
         drop(operation);
-        let transition = state.operations.try_write().unwrap();
-        assert!(super::operation(&state, &stamp).is_err());
+        let transition = state.operations.write("切换配置").await.unwrap();
+        assert!(super::operation(&state, &stamp, "读取状态").is_err());
         drop(transition);
         state.session.lock().unwrap().generation += 1;
-        assert!(super::operation(&state, &stamp).is_err());
+        assert!(super::operation(&state, &stamp, "读取状态").is_err());
         let stamp = Stamp {
             generation: 5,
             ..stamp
         };
         state.session.lock().unwrap().busy = true;
-        assert!(super::operation(&state, &stamp).is_err());
+        assert!(super::operation(&state, &stamp, "读取状态").is_err());
     }
     #[test]
     fn local_control_requires_server_identity_and_supported_process_mode() {

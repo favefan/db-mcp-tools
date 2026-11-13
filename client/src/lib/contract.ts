@@ -3621,6 +3621,7 @@ export interface components {
       decision: string;
       detail: string;
       duration_ms: number;
+      request_status?: string;
     };
     AuditDetail: {
       event: {
@@ -3633,6 +3634,7 @@ export interface components {
         decision: string;
         detail: string;
         duration_ms: number;
+        request_status?: string;
       };
       request?: null | {
         id: string;
@@ -3647,6 +3649,7 @@ export interface components {
         source: string;
         trace_id: string;
         sql: string;
+        agent_reason?: string;
         parameter_json: string;
         status: string;
         operation: string;
@@ -3689,6 +3692,7 @@ export interface components {
             decision: string;
             detail: string;
             duration_ms: number;
+            request_status?: string;
           }[];
       events_truncated: boolean;
     };
@@ -4130,6 +4134,8 @@ export interface components {
       params?: null | unknown[];
       client_request_id: string;
       tool?: string;
+      /** @description Explain the request purpose and action in at most 100 characters. Supply this for requests that may require approval; omission does not block execution. */
+      agent_reason?: string;
     };
     Registration: {
       id: string;
@@ -4207,6 +4213,7 @@ export interface components {
       created_at: string;
       expires_at: string;
       reason?: string;
+      agent_reason?: string;
       source: string;
       instance_revision: number;
       binding_revision: number;
@@ -4217,6 +4224,8 @@ export interface components {
         params?: null | unknown[];
         client_request_id: string;
         tool?: string;
+        /** @description Explain the request purpose and action in at most 100 characters. Supply this for requests that may require approval; omission does not block execution. */
+        agent_reason?: string;
       };
       result?: null | {
         request_id: string;
@@ -4243,6 +4252,7 @@ export interface components {
       source: string;
       trace_id: string;
       sql: string;
+      agent_reason?: string;
       parameter_json: string;
       status: string;
       operation: string;

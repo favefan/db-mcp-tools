@@ -17,6 +17,10 @@ import {
   Cable,
   LayoutTemplate,
   Archive,
+  Info,
+  MonitorCog,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import {
@@ -54,6 +58,7 @@ const settingsNavigation: { id: SettingsSection; name: string; icon: typeof Sett
   { id: "agents", name: "Agent 接入", icon: Cable },
   { id: "templates", name: "实例模板", icon: LayoutTemplate },
   { id: "data", name: "数据管理", icon: Archive },
+  { id: "about", name: "关于", icon: Info },
 ];
 export default function App() {
   const [page, setPage] = useState(() => (hasDesktop() ? 0 : 4));
@@ -64,6 +69,7 @@ export default function App() {
   const main = useRef<HTMLElement>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [theme, setTheme] = useState("system");
+  const [savingAppearance, setSavingAppearance] = useState(false);
   const [notifications, setNotifications] = useState(false);
   const [session, setSession] = useState<SessionView>();
   const generation = useRef(-1);
@@ -100,7 +106,8 @@ export default function App() {
   );
   const refreshSession = useCallback(() => getSession().then(applySession), [applySession]);
   const saveAppearance = async (nextTheme: string, nextNotifications: boolean) => {
-    if (!session?.current) return;
+    if (!session?.current || savingAppearance) return;
+    setSavingAppearance(true);
     try {
       await setDesktopPreferences(
         session.preferences.close_behavior,
@@ -111,6 +118,8 @@ export default function App() {
       await refreshSession();
     } catch (e) {
       toast.error(errorMessage(e));
+    } finally {
+      setSavingAppearance(false);
     }
   };
   useEffect(() => {
@@ -168,10 +177,14 @@ export default function App() {
         pendingIds: waiting.map((a) => a.id),
       }).catch(() => {});
     if (notifications && added.length && isTauri()) {
-      sendNotification({
-        title: "DB MCP Tools · 操作待审批",
-        body: `${added.length} 条新请求等待处理，请打开待审批页面。`,
-      });
+      for (const item of added)
+        sendNotification({
+          title: "DB MCP Tools · 操作待审批",
+          body:
+            "agent_reason" in item && item.agent_reason
+              ? `请求说明（Agent 提供）：${item.agent_reason}`
+              : "新请求等待处理，请打开待审批页面。",
+        });
     }
   }, [approvals.data, registrations.data, notifications]);
   useEffect(() => {
@@ -226,6 +239,30 @@ export default function App() {
       void unlisten.then((f) => f());
     };
   }, [client, profile?.id, session?.generation]);
+  const sessionReady = session !== undefined;
+  useEffect(() => {
+    if (!isTauri() || !sessionReady) return;
+    const listener = listen("open-about", () => {
+      void invoke("take_about_request");
+      setSettingsSection("about");
+      setPage(4);
+    });
+    void invoke<boolean>("take_about_request").then((requested) => {
+      if (requested) {
+        setSettingsSection("about");
+        setPage(4);
+      }
+    });
+    return () => {
+      void listener.then((unlisten) => unlisten());
+    };
+  }, [sessionReady]);
+  const themes = [
+    { value: "system", label: "自动", icon: MonitorCog },
+    { value: "light", label: "浅色", icon: Sun },
+    { value: "dark", label: "深色", icon: Moon },
+  ];
+  const activeTheme = themes.find((item) => item.value === theme) ?? themes[0];
   const compatibility = serverCompatibility(health.data);
   const connected = !!session?.connected && !!health.data && !health.error && !session.busy;
   const ready = connected && !compatibility && !upgrading;
@@ -308,6 +345,40 @@ export default function App() {
                 <Settings2 size={17} />
                 {!collapsed && <span>设置</span>}
               </button>
+            )}
+            {collapsed ? (
+              <button
+                className="settings-button theme-cycle"
+                disabled={!profile || savingAppearance || session?.busy}
+                title={`主题：${activeTheme.label}，点击切换为${themes[(themes.indexOf(activeTheme) + 1) % themes.length].label}`}
+                aria-label={`主题：${activeTheme.label}`}
+                onClick={() =>
+                  void saveAppearance(
+                    themes[(themes.indexOf(activeTheme) + 1) % themes.length].value,
+                    notifications,
+                  )
+                }
+              >
+                <activeTheme.icon size={17} />
+              </button>
+            ) : (
+              <div className="theme-switch" role="group" aria-label="主题">
+                <span
+                  className="theme-pill"
+                  style={{ transform: `translateX(${themes.indexOf(activeTheme) * 100}%)` }}
+                />
+                {themes.map((item) => (
+                  <button
+                    key={item.value}
+                    aria-pressed={theme === item.value}
+                    disabled={!profile || savingAppearance || session?.busy}
+                    onClick={() => void saveAppearance(item.value, notifications)}
+                  >
+                    <item.icon size={14} />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
             )}
             <ProfileMenu
               session={session}

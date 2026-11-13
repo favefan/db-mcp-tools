@@ -326,10 +326,7 @@ pub fn save(path: &Path, value: &Value) -> Result<(), String> {
 
 pub async fn export(app: tauri::AppHandle) -> Result<Value, String> {
     let state = app.state::<Desktop>();
-    let _guard = state
-        .operations
-        .try_read()
-        .map_err(|_| "正在切换配置，请稍候")?;
+    let _guard = state.operations.try_read("导出诊断包（含文件选择）")?;
     let dialog_app = app.clone();
     let path = tauri::async_runtime::spawn_blocking(move || {
         dialog_app
@@ -455,10 +452,7 @@ pub async fn diagnostics_export(
     destination: Option<PathBuf>,
 ) -> Result<Value, String> {
     let state = app.state::<Desktop>();
-    let _guard = state
-        .operations
-        .try_read()
-        .map_err(|_| "正在切换配置，请稍候")?;
+    let _guard = state.operations.try_read("导出诊断包（含文件选择）")?;
     match destination {
         Some(path) => export_to(app.clone(), path).await,
         None => export(app.clone()).await,

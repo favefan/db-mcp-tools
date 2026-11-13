@@ -132,7 +132,7 @@ const session = () => ({
 });
 const health = {
   server_id: "preview-server",
-  version: "1.0.13",
+  version: "1.0.14",
   api_version: 1,
   mode: "background",
   data_dir: profile.data_dir,
@@ -183,6 +183,8 @@ for (let n = 1; n <= 201; n++)
     decision: "saved",
     request_id: "",
     detail: "管理配置已保存",
+    entity_id: "",
+    duration_ms: 0,
   });
 
 function fixtureAuditDetail(event: Audit): AuditDetail {
@@ -211,6 +213,7 @@ function fixtureAuditDetail(event: Audit): AuditDetail {
       instance_name: instances.find((i) => i.id === event.instance_id)?.name ?? "演示实例",
       database: "workspace",
       source: "127.0.0.1",
+      agent_reason: "核查订单数据，读取指定记录的状态。",
       trace_id: "preview-diagnostic-id",
       sql: legacy
         ? ""
@@ -257,6 +260,7 @@ const approvals = [
     client_request_id: "preview-request",
     digest: "preview",
     status: "pending",
+    agent_reason: "按用户要求确认订单，将指定订单状态更新为 confirmed。",
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 3600000).toISOString(),
     operation: "update",
@@ -268,6 +272,7 @@ const approvals = [
       params: ["confirmed", 42],
       client_request_id: "preview-request",
       tool: "db_execute",
+      agent_reason: "按用户要求确认订单，将指定订单状态更新为 confirmed。",
     },
   },
 ];
@@ -367,10 +372,18 @@ async function request(path: string, method: string, body: unknown): Promise<unk
     const params = new URLSearchParams(path.split("?")[1]);
     return logs
       .filter(
+        (event) =>
+          !event.request_id ||
+          !logs.some((other) => other.request_id === event.request_id && other.id > event.id),
+      )
+      .filter(
         (e) =>
-          (!params.get("entity_id") || e.entity_id === params.get("entity_id")) &&
+          (!params.get("entity_id") ||
+            e.entity_id === params.get("entity_id") ||
+            (params.get("entity_id") === "__admin__" && !e.entity_id)) &&
           (!params.get("instance_id") || e.instance_id === params.get("instance_id")) &&
-          (!params.get("decision") || e.decision === params.get("decision")) &&
+          (!params.get("decision") ||
+            (e.request_status ?? e.decision) === params.get("decision")) &&
           (!Number(params.get("before")) || e.id < Number(params.get("before"))) &&
           (!params.get("from") || e.time >= params.get("from")!) &&
           (!params.get("to") || e.time <= params.get("to")!),

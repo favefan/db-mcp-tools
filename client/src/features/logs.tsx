@@ -23,6 +23,7 @@ export function Logs() {
   });
   const q = useQuery({
     queryKey: ["audit", entity, instance, decision, before, from, to],
+    refetchInterval: before === 0 ? 5000 : false,
     queryFn: () =>
       api<Audit[]>(
         `audit-events?${new URLSearchParams({ entity_id: entity, instance_id: instance, decision, before: String(before), from: from ? new Date(from).toISOString() : "", to: to ? new Date(to).toISOString() : "" })}`,
@@ -62,6 +63,7 @@ export function Logs() {
           }}
         >
           <option value="">全部实体</option>
+          <option value="__admin__">管理员</option>
           {entities.data?.map((e) => (
             <option value={e.id} key={e.id}>
               {e.name}
@@ -130,7 +132,7 @@ export function Logs() {
       ) : (
         <DataTable
           label="访问日志"
-          columns={["时间", "实体 / 实例", "操作", "结果", "耗时", "详情"]}
+          columns={["时间", "实体 / 实例", "操作", "请求结果", "耗时", "详情"]}
         >
           {q.data.map((v) => (
             <tr
@@ -158,20 +160,30 @@ export function Logs() {
               <td>
                 <code>{v.action}</code>
               </td>
-              <td>
+              <td
+                title={
+                  v.request_id ? `事件当时：${statusNames[v.decision] ?? v.decision}` : undefined
+                }
+              >
                 <Badge
                   tone={
-                    v.decision === "succeeded"
+                    (v.request_status ?? v.decision) === "succeeded"
                       ? "green"
-                      : v.decision === "denied" || v.decision === "failed"
+                      : (v.request_status ?? v.decision) === "denied" ||
+                          (v.request_status ?? v.decision) === "failed"
                         ? "red"
                         : "neutral"
                   }
                 >
-                  {statusNames[v.decision] ?? v.decision}
+                  {statusNames[v.request_status ?? v.decision] ?? v.request_status ?? v.decision}
                 </Badge>
               </td>
-              <td>{v.duration_ms} ms</td>
+              <td title={v.request_id ? "执行耗时不含等待审批的时间" : undefined}>
+                {v.request_id &&
+                ["pending", "approved", "executing"].includes(v.request_status ?? v.decision)
+                  ? "—"
+                  : `${v.duration_ms} ms`}
+              </td>
               <td>
                 <Button
                   variant="text"

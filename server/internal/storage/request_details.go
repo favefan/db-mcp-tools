@@ -125,6 +125,7 @@ func (s *Store) AuditDetail(id int64) (model.AuditDetail, error) {
 			return v, err
 		}
 		detail.SQL, detail.Tool, detail.ParameterJSON = query.SQL, query.Tool, encode(query.Params)
+		detail.AgentReason = query.AgentReason
 		v.PayloadState = "available"
 	}
 	return v, nil

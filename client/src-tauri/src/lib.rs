@@ -12,6 +12,7 @@ mod diagnostics;
 mod installer;
 mod integrations;
 mod notifications;
+mod operations;
 mod preferences;
 mod profiles;
 use profiles::Profile;
@@ -20,7 +21,7 @@ mod windows;
 struct Desktop {
     session: Mutex<profiles::Runtime>,
     catalog: Mutex<profiles::Store>,
-    operations: tokio::sync::RwLock<()>,
+    operations: operations::Operations,
     events: tokio::sync::watch::Sender<()>,
     exiting: std::sync::atomic::AtomicBool,
     preferences: Mutex<preferences::Preferences>,
@@ -197,7 +198,7 @@ async fn admin_request(
     body: Option<Value>,
     session: profiles::Stamp,
 ) -> Result<Value, String> {
-    let _guard = profiles::operation(&state, &session)?;
+    let _guard = profiles::operation(&state, &session, &format!("管理请求 {method} {path}"))?;
     let (profile, token) = {
         let s = state.session.lock().map_err(|e| e.to_string())?;
         if !s.connected {
@@ -219,10 +220,25 @@ async fn local_command(
     data_dir: String,
     action: String,
 ) -> Result<Value, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let _read = if action == "status" {
+        Some(profiles::operation(
+            &state,
+            &session,
+            "读取本机 MCP Server 状态",
+        )?)
+    } else {
+        None
+    };
+    let _write = if action != "status" {
+        Some(
+            state
+                .operations
+                .write(&format!("执行本机命令 {action}"))
+                .await?,
+        )
+    } else {
+        None
+    };
     if !profiles::matches(&state, &session) {
         return Err("会话已改变".into());
     }
@@ -445,10 +461,7 @@ async fn local_restore(
     data_dir: String,
     backup: String,
 ) -> Result<Value, String> {
-    let _guard = state
-        .operations
-        .try_write()
-        .map_err(|_| "有操作正在进行，请稍候")?;
+    let _guard = state.operations.write("恢复本机备份").await?;
     if !profiles::matches(&state, &session) {
         return Err("会话已改变".into());
     }
@@ -555,7 +568,7 @@ pub fn run() {
         .manage(Desktop {
             session: Mutex::new(profiles::Runtime::default()),
             catalog: Mutex::new(profiles::Store::default()),
-            operations: tokio::sync::RwLock::new(()),
+            operations: crate::operations::Operations::default(),
             events: tokio::sync::watch::channel(()).0,
             exiting: std::sync::atomic::AtomicBool::new(false),
             preferences: Mutex::new(preferences::Preferences::default()),
@@ -572,12 +585,13 @@ pub fn run() {
             let handle = app.handle();
             diagnostics::init(handle).map_err(std::io::Error::other)?;
             if let Err(error)=profiles::initialize(handle){let state=app.state::<Desktop>();state.session.lock().expect("session lock").error=Some(error);}
-            let [(show_id, show_label), (light_id, light_label), (export_id, export_label), (quit_id, quit_label)] = windows::TRAY_ITEMS;
+            let [(show_id, show_label), (light_id, light_label), (export_id, export_label), (about_id, about_label), (quit_id, quit_label)] = windows::TRAY_ITEMS;
             let show = MenuItem::with_id(app, show_id, show_label, true, None::<&str>)?;
             let lightweight = CheckMenuItem::with_id(app, light_id, light_label, true, false, None::<&str>)?;
             let export = MenuItem::with_id(app, export_id, export_label, true, None::<&str>)?;
+            let about = MenuItem::with_id(app, about_id, about_label, true, None::<&str>)?;
             let quit = MenuItem::with_id(app, quit_id, quit_label, true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &lightweight, &export, &quit])?;
+            let menu = Menu::with_items(app, &[&show, &lightweight, &export, &about, &quit])?;
             app.state::<Desktop>().windows.lock().expect("window state lock").toggle = Some(lightweight);
             let mut tray = TrayIconBuilder::with_id("main-tray")
                 .menu(&menu)
@@ -621,6 +635,7 @@ pub fn run() {
             profiles::exit_session,
             get_preferences,
             windows::set_desktop_preferences,
+            windows::take_about_request,
             windows::set_lightweight_mode,
             windows::confirm_close,
             connect_profile,

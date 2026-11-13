@@ -12,7 +12,7 @@ import (
 
 func (a *App) recordRequestDetail(ctx context.Context, id model.Identity, q model.Query, v model.Request) {
 	params, _ := json.Marshal(q.Params)
-	detail := model.RequestDetail{ID: v.ID, Tool: q.Tool, ClientRequestID: q.ClientRequestID, EntityID: id.EntityID, InstanceID: q.InstanceID, Database: q.Database, Source: id.Source, TraceID: diagnostics.Trace(ctx), SQL: q.SQL, ParameterJSON: string(params), Status: v.Status, Operation: v.Operation, Tables: v.Tables, CreatedAt: v.CreatedAt}
+	detail := model.RequestDetail{ID: v.ID, Tool: q.Tool, ClientRequestID: q.ClientRequestID, EntityID: id.EntityID, InstanceID: q.InstanceID, Database: q.Database, Source: id.Source, TraceID: diagnostics.Trace(ctx), SQL: q.SQL, AgentReason: q.AgentReason, ParameterJSON: string(params), Status: v.Status, Operation: v.Operation, Tables: v.Tables, CreatedAt: v.CreatedAt}
 	if entity, err := a.Store.Entity(id.EntityID); err == nil {
 		detail.EntityName, detail.Client = entity.Name, entity.Client
 	}

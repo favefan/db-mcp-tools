@@ -1,3 +1,4 @@
+import { version as clientVersion } from "../../package.json";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +56,7 @@ const schema = z.object({
   token: z.string(),
 });
 type FormValues = z.infer<typeof schema>;
-export type SettingsSection = "general" | "server" | "agents" | "templates" | "data";
+export type SettingsSection = "general" | "server" | "agents" | "templates" | "data" | "about";
 export function Settings({
   section,
   title,
@@ -281,6 +282,32 @@ export function Settings({
       actions={<>{health && <Badge tone="green">MCP Server {health.version}</Badge>}</>}
     >
       <div className="settings-content">
+        {section === "about" && (
+          <section className="panel settings-panel">
+            <h2>DB MCP Tools</h2>
+            <p>管理数据库访问、权限、审批与脱敏的个人桌面工具。</p>
+            <dl className="detail-fields">
+              <div>
+                <dt>客户端版本</dt>
+                <dd>{clientVersion}</dd>
+              </div>
+              <div>
+                <dt>MCP Server 版本</dt>
+                <dd>{health?.version ?? "未连接"}</dd>
+              </div>
+              <div>
+                <dt>许可证</dt>
+                <dd>MIT</dd>
+              </div>
+            </dl>
+            <p>
+              <a href="https://github.com/favefan/db-mcp-tools" target="_blank" rel="noreferrer">
+                项目主页与发行版本
+              </a>
+            </p>
+            <DiagnosticExport />
+          </section>
+        )}
         {section === "server" && session && (
           <Profiles session={session} onChange={onSessionChange} />
         )}

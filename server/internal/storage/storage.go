@@ -587,6 +587,13 @@ func (s *Store) Request(id string, payload bool) (model.Request, error) {
 		}
 		v.ParameterJSON = encode(v.Query.Params)
 	}
+	if payload {
+		if detail, detailErr := s.requestDetail(id); detailErr == nil {
+			v.AgentReason = detail.AgentReason
+		} else if !errors.Is(detailErr, sql.ErrNoRows) {
+			return v, detailErr
+		}
+	}
 	if len(r) > 0 {
 		plain, err := s.Unseal(r)
 		if err != nil {
@@ -625,6 +632,11 @@ func (s *Store) Requests() ([]model.Request, error) {
 			return nil, err
 		}
 		v.Result = nil
+		if detail, detailErr := s.requestDetail(id); detailErr == nil {
+			v.AgentReason = detail.AgentReason
+		} else if !errors.Is(detailErr, sql.ErrNoRows) {
+			return nil, detailErr
+		}
 		out = append(out, v)
 	}
 	return out, nil
@@ -637,6 +649,7 @@ func (s *Store) Claim(v model.Request) error {
 }
 func requestBody(v model.Request) string {
 	v.Query = nil
+	v.AgentReason = ""
 	v.Result = nil
 	v.ParameterJSON = ""
 	return encode(v)
@@ -658,10 +671,29 @@ func (s *Store) Audits(entity, instance, decision string, before int64) ([]model
 	return s.AuditsRange(entity, instance, decision, before, "", "")
 }
 func (s *Store) AuditsRange(entity, instance, decision string, before int64, from, to string) ([]model.Audit, error) {
+	return s.auditsRange(entity, instance, decision, before, from, to, false)
+}
+
+// AuditRequestsRange shows one current summary per request; detail retains every event.
+func (s *Store) AuditRequestsRange(entity, instance, decision string, before int64, from, to string) ([]model.Audit, error) {
+	return s.auditsRange(entity, instance, decision, before, from, to, true)
+}
+func (s *Store) auditsRange(entity, instance, decision string, before int64, from, to string, grouped bool) ([]model.Audit, error) {
 	if before == 0 {
 		before = 1 << 62
 	}
-	rows, err := s.DB.Query("SELECT id,time,entity_id,instance_id,request_id,action,decision,detail,duration_ms FROM audit_events WHERE id<? AND (?='' OR entity_id=?) AND (?='' OR instance_id=?) AND (?='' OR decision=?) AND (?='' OR time>=?) AND (?='' OR time<=?) ORDER BY id DESC LIMIT 200", before, entity, entity, instance, instance, decision, decision, from, from, to, to)
+	// Keep immutable event decisions, but filter/display the request's current outcome.
+	rows, err := s.DB.Query(`WITH events AS (
+ SELECT a.*, COALESCE(CASE WHEN r.status IN ('pending','approved') AND r.expires_at<=? THEN 'expired' ELSE r.status END,
+  (SELECT decision FROM audit_events terminal WHERE terminal.request_id=a.request_id AND a.request_id<>'' AND terminal.decision IN ('succeeded','failed','denied','expired','cancelled','result_unknown') ORDER BY terminal.id DESC LIMIT 1), a.decision) AS request_status
+ FROM audit_events a LEFT JOIN requests r ON r.id=a.request_id
+) SELECT id,time,entity_id,instance_id,request_id,action,decision,detail,
+ CASE WHEN ? THEN COALESCE((SELECT duration_ms FROM audit_events execution WHERE execution.request_id=events.request_id AND events.request_id<>'' AND execution.action='execute' ORDER BY execution.id DESC LIMIT 1), duration_ms) ELSE duration_ms END,
+ request_status FROM events
+ WHERE (?=0 OR request_id='' OR id=(SELECT MAX(latest.id) FROM audit_events latest WHERE latest.request_id=events.request_id))
+ AND id<? AND (?='' OR entity_id=? OR (?='__admin__' AND entity_id='')) AND (?='' OR instance_id=?)
+ AND (?='' OR (CASE WHEN ? THEN request_status ELSE decision END)=?) AND (?='' OR time>=?) AND (?='' OR time<=?) ORDER BY id DESC LIMIT 200`,
+		time.Now().UTC().Format(time.RFC3339), grouped, grouped, before, entity, entity, entity, instance, instance, decision, grouped, decision, from, from, to, to)
 	if err != nil {
 		return nil, err
 	}
@@ -669,7 +701,7 @@ func (s *Store) AuditsRange(entity, instance, decision string, before int64, fro
 	out := []model.Audit{}
 	for rows.Next() {
 		var v model.Audit
-		if err = rows.Scan(&v.ID, &v.Time, &v.EntityID, &v.InstanceID, &v.RequestID, &v.Action, &v.Decision, &v.Detail, &v.DurationMS); err != nil {
+		if err = rows.Scan(&v.ID, &v.Time, &v.EntityID, &v.InstanceID, &v.RequestID, &v.Action, &v.Decision, &v.Detail, &v.DurationMS, &v.RequestStatus); err != nil {
 			return nil, err
 		}
 		out = append(out, v)

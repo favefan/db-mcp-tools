@@ -65,6 +65,9 @@
           },
           "duration_ms": {
             "type": "integer"
+          },
+          "request_status": {
+            "type": "string"
           }
         },
         "required": [
@@ -112,6 +115,9 @@
               },
               "duration_ms": {
                 "type": "integer"
+              },
+              "request_status": {
+                "type": "string"
               }
             },
             "required": [
@@ -164,6 +170,9 @@
                 "type": "string"
               },
               "sql": {
+                "type": "string"
+              },
+              "agent_reason": {
                 "type": "string"
               },
               "parameter_json": {
@@ -307,6 +316,9 @@
                 },
                 "duration_ms": {
                   "type": "integer"
+                },
+                "request_status": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -1856,6 +1868,10 @@
           },
           "tool": {
             "type": "string"
+          },
+          "agent_reason": {
+            "type": "string",
+            "description": "Explain the request purpose and action in at most 100 characters. Supply this for requests that may require approval; omission does not block execution."
           }
         },
         "required": ["instance_id", "sql", "client_request_id"],
@@ -2102,6 +2118,9 @@
           "reason": {
             "type": "string"
           },
+          "agent_reason": {
+            "type": "string"
+          },
           "source": {
             "type": "string"
           },
@@ -2132,6 +2151,10 @@
               },
               "tool": {
                 "type": "string"
+              },
+              "agent_reason": {
+                "type": "string",
+                "description": "Explain the request purpose and action in at most 100 characters. Supply this for requests that may require approval; omission does not block execution."
               }
             },
             "required": ["instance_id", "sql", "client_request_id"],
@@ -2234,6 +2257,9 @@
             "type": "string"
           },
           "sql": {
+            "type": "string"
+          },
+          "agent_reason": {
             "type": "string"
           },
           "parameter_json": {
@@ -2597,7 +2623,7 @@
   },
   "info": {
     "title": "DB MCP Tools Admin API",
-    "version": "1.0.13"
+    "version": "1.0.14"
   },
   "openapi": "3.1.0",
   "paths": {

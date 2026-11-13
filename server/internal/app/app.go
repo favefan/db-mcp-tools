@@ -329,8 +329,15 @@ func (a *App) Simulate(ctx context.Context, id model.Identity, q model.Query) (a
 	}
 	return map[string]any{"decision": decision, "database": p.instance.Connection.Database, "statement": p.info, "base": p.instance.Policy, "binding": p.binding.Policy}, nil
 }
-func digest(q model.Query) string { b, _ := json.Marshal(q); return storage.Hash(string(b)) }
+func digest(q model.Query) string {
+	// Explanation is metadata, not part of the executable approval or retry identity.
+	q.AgentReason = ""
+	b, _ := json.Marshal(q)
+	return storage.Hash(string(b))
+}
 func (a *App) Query(ctx context.Context, id model.Identity, q model.Query) (r model.Result, err error) {
+	reason := []rune(strings.TrimSpace(q.AgentReason))
+	q.AgentReason = string(reason[:min(100, len(reason))])
 	start := time.Now()
 	diagnostics.Event(ctx, slog.LevelInfo, "request.start", "entity_id", id.EntityID, "instance_id", q.InstanceID, "credential_id", id.CredentialID, "source", id.Source, "tool", q.Tool, "query_fingerprint", digest(q))
 	defer func() {

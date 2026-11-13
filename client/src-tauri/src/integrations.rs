@@ -436,7 +436,7 @@ pub fn integration_list(
     state: State<'_, Desktop>,
     session: crate::profiles::Stamp,
 ) -> Result<Vec<Record>, String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "处理 Agent 接入配置")?;
     records(&record_dir(&app)?)
 }
 #[tauri::command]
@@ -446,7 +446,7 @@ pub fn integration_preview(
     session: crate::profiles::Stamp,
     target: Target,
 ) -> Result<Preview, String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "处理 Agent 接入配置")?;
     preview(app_target(&app, &target)?, &record_dir(&app)?, &target)
 }
 
@@ -482,7 +482,7 @@ pub async fn integration_export(
     state: State<'_, Desktop>,
     session: crate::profiles::Stamp,
 ) -> Result<Value, String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "处理 Agent 接入配置")?;
     validate_mcp_url(&url)?;
     tauri::async_runtime::spawn_blocking(move || {
         let Some(file) = app
@@ -577,7 +577,7 @@ pub async fn integration_install(
     expected: String,
     session: crate::profiles::Stamp,
 ) -> Result<Value, String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "处理 Agent 接入配置")?;
     if !state.session.lock().map_err(|e| e.to_string())?.connected {
         return Err("当前环境未连接".into());
     }
@@ -719,7 +719,7 @@ pub fn integration_remove_preview(
     session: crate::profiles::Stamp,
     id: String,
 ) -> Result<Value, String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "处理 Agent 接入配置")?;
     let r = records(&record_dir(&app)?)?
         .into_iter()
         .find(|r| r.id == id)
@@ -741,7 +741,7 @@ pub async fn integration_remove(
     expected: String,
     session: crate::profiles::Stamp,
 ) -> Result<Value, String> {
-    let _guard = crate::profiles::operation(&state, &session)?;
+    let _guard = crate::profiles::operation(&state, &session, "处理 Agent 接入配置")?;
     let dir = record_dir(&app)?;
     let r = records(&dir)?
         .into_iter()
@@ -883,7 +883,7 @@ mod tests {
                 ..Default::default()
             }),
             catalog: Mutex::new(crate::profiles::Store::default()),
-            operations: tokio::sync::RwLock::new(()),
+            operations: crate::operations::Operations::default(),
             events: tokio::sync::watch::channel(()).0,
             exiting: std::sync::atomic::AtomicBool::new(false),
             preferences: Mutex::new(crate::preferences::Preferences::default()),

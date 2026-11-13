@@ -4,6 +4,14 @@ Notable changes for users and contributors, listed from newest to oldest.
 
 ## [Unreleased]
 
+## [1.0.14] - 2026-11-13
+
+- Unify sidebar item widths and alignment, separate the profile divider from its rounded button, and add a three-state theme pill / collapsed icon button.
+- Add About to settings and the tray, including lightweight-window restoration.
+- Summarize database access logs by request with authoritative current outcomes, administrator filtering, real execution durations, and complete detail timelines.
+- Accept non-blocking Agent explanations of up to 100 Unicode characters, retain them in encrypted history, and display them in approvals, request details, and foreground / lightweight notifications without changing executable retry identity.
+- Wait briefly for background reads before desktop lifecycle changes and identify active work in conflict messages; ordinary local status checks now share read permits.
+
 ## [1.0.13] - 2026-11-12
 
 ### Added
