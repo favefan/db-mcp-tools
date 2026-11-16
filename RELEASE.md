@@ -1,30 +1,30 @@
-# DB MCP Tools v1.0.14
+# DB MCP Tools v1.0.15
 
-Client and MCP Server **1.0.14** improve navigation, access logs, and approval explanations.
+Client and MCP Server **1.0.15** fix database connection reuse, failure reporting, and operational alerts.
 
 ## Highlights
 
-- Align sidebar navigation, settings, profile switching, branding, and collapse controls. Profile switching now uses a rounded item below a separate divider.
-- Add an animated Auto / Light / Dark theme pill; the collapsed sidebar cycles through the same three modes with distinct icons.
-- Add Settings → About and a tray About entry, including reopening the About page from lightweight mode.
-- Access logs show one current outcome per database request, retain the full event timeline in details, and support filtering administrator operations. Completed requests use actual execution duration; waiting requests show no completed duration.
-- Ask Agents to supply an optional explanation of purpose and action in at most 100 characters. Store it encrypted with request history and show it in approval cards, details, access log details, and desktop notifications, including lightweight mode. Missing explanations never block requests or change retry identity.
-- Queue desktop lifecycle changes briefly behind background reads, allow status checks alongside other reads, and name active operations when a conflict remains.
+- Database discovery for saved instances reuses the initial database's connection pool instead of creating a new login for each request. Current database visibility is still checked on every call, and unsaved connection edits remain isolated.
+- Connection and metadata failures appear as failed requests in access logs, with safe reasons preserved in request details. Permission denials still appear as denied.
+- Native database failure dialogs identify the instance and request and explain whether the request reached approval. Dialogs also work in lightweight mode, independently of optional approval notifications. Repeated failures for one instance are coalesced for 60 seconds and while its dialog is open.
+- If connectivity fails during an approved request's execution recheck, the request becomes failed without executing SQL. Resuming it cannot silently execute the old write after connectivity returns; submit a new request for normal approval.
 
 ## Downloads
 
 | File                                                         | Purpose                                               |
 | ------------------------------------------------------------ | ----------------------------------------------------- |
-| `db-mcp-tools-client-bundled-1.0.14-windows-amd64.setup.exe` | Desktop client with MCP Server 1.0.14                 |
-| `db-mcp-tools-client-none-1.0.14-windows-amd64.setup.exe`    | Desktop client for a separately maintained MCP Server |
-| `dbmcp-server-1.0.14-windows-amd64.zip`                      | MCP Server, CLI, and STDIO Bridge                     |
+| `db-mcp-tools-client-bundled-1.0.15-windows-amd64.setup.exe` | Desktop client with MCP Server 1.0.15                 |
+| `db-mcp-tools-client-none-1.0.15-windows-amd64.setup.exe`    | Desktop client for a separately maintained MCP Server |
+| `dbmcp-server-1.0.15-windows-amd64.zip`                      | MCP Server, CLI, and STDIO Bridge                     |
 | `SHA256SUMS`                                                 | Release attachment checksums                          |
 
 Client build manifests and `source-maps.zip` are also attached. Installers are unsigned. Public packages include PostgreSQL, MySQL, and SQL Server drivers; optional local DM8 builds are excluded.
 
 ## Upgrading
 
-Upgrade the MCP Server to 1.0.14 for request summaries, current outcome filtering, administrator filtering, and Agent explanation storage. Older compatible servers remain connectable; the minimum API compatibility version remains 1.0.2. There is no SQLite schema or backup format change.
+Update both client and MCP Server to 1.0.15 for database failure dialogs. Older compatible servers remain connectable; the minimum API compatibility version remains 1.0.2. There is no SQLite schema or backup format change. Existing historical events retain their original decisions.
+
+Write approval is created only after database scope, schema, and SQL authorization checks succeed. A connection failure before these checks completes the request as failed without creating a pending approval.
 
 The bundled Windows installer updates managed local MCP Servers while preserving data, credentials, and upgrade snapshots. Independently maintained servers require a separate server update.
 

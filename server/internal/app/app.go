@@ -26,24 +26,27 @@ type App struct {
 	Store       *storage.Store
 	DB          *database.Manager
 	eventMu     sync.Mutex
-	subscribers map[chan struct{}]struct{}
+	subscribers map[chan Event]struct{}
 }
 
 func New(s *storage.Store) *App {
-	return &App{Store: s, DB: database.New(), subscribers: make(map[chan struct{}]struct{})}
+	return &App{Store: s, DB: database.New(), subscribers: make(map[chan Event]struct{})}
 }
 func (a *App) Changed() {
+	a.publish(Event{})
+}
+func (a *App) publish(event Event) {
 	a.eventMu.Lock()
 	defer a.eventMu.Unlock()
 	for ch := range a.subscribers {
 		select {
-		case ch <- struct{}{}:
+		case ch <- event:
 		default:
 		}
 	}
 }
-func (a *App) Subscribe() (chan struct{}, func()) {
-	ch := make(chan struct{}, 1)
+func (a *App) Subscribe() (chan Event, func()) {
+	ch := make(chan Event, 32)
 	a.eventMu.Lock()
 	a.subscribers[ch] = struct{}{}
 	a.eventMu.Unlock()
@@ -342,8 +345,8 @@ func (a *App) Query(ctx context.Context, id model.Identity, q model.Query) (r mo
 	diagnostics.Event(ctx, slog.LevelInfo, "request.start", "entity_id", id.EntityID, "instance_id", q.InstanceID, "credential_id", id.CredentialID, "source", id.Source, "tool", q.Tool, "query_fingerprint", digest(q))
 	defer func() {
 		decision := r.Status
-		if err != nil {
-			decision = "denied"
+		if err != nil && decision == "" {
+			decision = failureStatus(err)
 		}
 		diagnostics.Event(ctx, slog.LevelInfo, "request.complete", "entity_id", id.EntityID, "instance_id", q.InstanceID, "request_id", r.RequestID, "tool", q.Tool, "status", decision, "duration_ms", time.Since(start).Milliseconds(), "error", diagnostics.ErrorInfo(err))
 		_ = a.Store.Audit(model.Audit{EntityID: id.EntityID, InstanceID: q.InstanceID, RequestID: r.RequestID, Action: q.Tool, Decision: decision, Detail: "request_digest=" + digest(q), DurationMS: time.Since(start).Milliseconds()})
@@ -354,8 +357,10 @@ func (a *App) Query(ctx context.Context, id model.Identity, q model.Query) (r mo
 		// Rejected requests also need a traceable history entry, without creating
 		// executable work in the approval/retry state machine.
 		r.RequestID = model.ID()
-		a.recordRequestDetail(ctx, id, q, model.Request{ID: r.RequestID, Status: "denied", CreatedAt: start.UTC().Format(time.RFC3339Nano)})
-		a.completeRequestDetail(ctx, r.RequestID, model.Result{Status: "denied", Reason: err.Error()}, start, nil)
+		r.Status, r.Reason = failureStatus(err), err.Error()
+		a.recordRequestDetail(ctx, id, q, model.Request{ID: r.RequestID, Status: r.Status, CreatedAt: start.UTC().Format(time.RFC3339Nano)})
+		a.completeRequestDetail(ctx, r.RequestID, r, start, nil)
+		a.databaseFailed(q, r.RequestID, "preparation", err)
 		return r, err
 	}
 	q.Database = p.instance.Connection.Database
@@ -368,8 +373,12 @@ func (a *App) Query(ctx context.Context, id model.Identity, q model.Query) (r mo
 	v, created, err := a.Store.CreateRequest(v, q)
 	if err != nil {
 		r.RequestID = model.ID()
-		a.recordRequestDetail(ctx, id, q, model.Request{ID: r.RequestID, Status: "denied", CreatedAt: start.UTC().Format(time.RFC3339Nano)})
-		a.completeRequestDetail(ctx, r.RequestID, model.Result{Status: "denied", Reason: err.Error()}, start, nil)
+		r.Status, r.Reason = "failed", err.Error()
+		if errors.Is(err, storage.ErrConflict) || errors.Is(err, storage.ErrDenied) {
+			r.Status = "denied"
+		}
+		a.recordRequestDetail(ctx, id, q, model.Request{ID: r.RequestID, Status: r.Status, CreatedAt: start.UTC().Format(time.RFC3339Nano)})
+		a.completeRequestDetail(ctx, r.RequestID, r, start, nil)
 		return r, err
 	}
 	if !created {
@@ -454,8 +463,25 @@ func (a *App) execute(ctx context.Context, id model.Identity, v model.Request, q
 	// Recheck the current credential, resources, SQL and masks immediately before claim.
 	p, err := a.prepare(ctx, id, q)
 	if err != nil {
-		_ = a.Store.Audit(model.Audit{EntityID: id.EntityID, InstanceID: q.InstanceID, RequestID: v.ID, Action: "execution.recheck", Decision: "denied"})
-		return model.Result{}, err
+		status := failureStatus(err)
+		if status == "failed" {
+			r := model.Result{RequestID: v.ID, Status: status, Reason: err.Error()}
+			if e := a.Store.FailBeforeExecution(v.ID, r); e != nil {
+				if !errors.Is(e, storage.ErrConflict) {
+					return model.Result{}, e
+				}
+				current, e := a.Store.Request(v.ID, false)
+				if e != nil {
+					return model.Result{}, e
+				}
+				return a.checkedResult(id, current)
+			}
+			a.completeRequestDetail(ctx, v.ID, r, start, nil)
+			a.databaseFailed(q, v.ID, "recheck", err)
+		}
+		_ = a.Store.Audit(model.Audit{EntityID: id.EntityID, InstanceID: q.InstanceID, RequestID: v.ID, Action: "execution.recheck", Decision: status})
+		a.Changed()
+		return model.Result{RequestID: v.ID, Status: status, Reason: err.Error()}, err
 	}
 	v.InstanceRevision = p.instance.Revision
 	v.BindingRevision = p.binding.Revision
@@ -498,6 +524,7 @@ func (a *App) execute(ctx context.Context, id model.Identity, v model.Request, q
 		return unknown, nil
 	}
 	a.completeRequestDetail(ctx, v.ID, r, start, matched)
+	a.databaseFailed(q, v.ID, "execution", err)
 	diagnostics.Event(ctx, slog.LevelInfo, "execution.complete", "request_id", v.ID, "status", r.Status, "error", diagnostics.ErrorInfo(err))
 	_ = a.Store.Audit(model.Audit{EntityID: id.EntityID, InstanceID: q.InstanceID, RequestID: v.ID, Action: "execute", Decision: r.Status, DurationMS: time.Since(start).Milliseconds()})
 	a.Changed()

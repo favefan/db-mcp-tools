@@ -4,6 +4,12 @@ Notable changes for users and contributors, listed from newest to oldest.
 
 ## [Unreleased]
 
+## [1.0.15] - 2026-11-16
+
+- Reuse saved instance connection pools for database discovery, avoiding a fresh login for every request while continuing to check current database visibility. Unsaved connection editors remain isolated.
+- Record database discovery, schema access, and execution recheck failures as failed requests rather than permission denials. Failed approved rechecks become terminal without executing SQL or replaying writes.
+- Show native database failure dialogs in foreground and lightweight mode, including the instance, request, and whether approval was reached. Coalesce repeated failures per instance for 60 seconds; optional approval notification preferences do not silence operational alerts.
+
 ## [1.0.14] - 2026-11-13
 
 - Unify sidebar item widths and alignment, separate the profile divider from its rounded button, and add a three-state theme pill / collapsed icon button.

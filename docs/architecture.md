@@ -87,6 +87,7 @@ Admin uses OpenAPI 3.1. The frontend generates types with `openapi-typescript` w
 - SQLite enables foreign keys, WAL, and a reasonable busy timeout. Short transactions are serialized; approval waits and database queries hold no SQLite write transaction.
 - goose applies embedded migrations after a consistent snapshot. Schema downgrades are unsupported; old executables explicitly reject newer schemas.
 - Each instance maintains `sql.DB` pools per target database while sharing its concurrency limit. Connection changes close all pools for that instance; requests do not create new pools each time.
+- Saved-instance database discovery reuses the initial database's pool and queries current visibility on each call. Unsaved connection editors and catalog inspection use isolated managers, never saved-instance pools.
 
 Go slog / lumberjack and Tauri's log plugin provide per-process locked, rotated diagnostics. Audit remains in SQLite. Administrator diagnostics summarize logs, safe state, and audit without secrets or query payloads. The desktop merges snapshots through its management connection and explicitly reports collection failures. Offline CLI collection reads logs without opening business state. Correlation IDs span Rust, Go HTTP, and execution. See [Diagnostics](diagnostics.md).
 
@@ -163,6 +164,10 @@ All database tools, approval resumption, and simulation share one `app` pipeline
 6. **Execute**: bind parameters through `database/sql`, use read-only transactions / sessions where supported, and commit or roll back writes within the request. SELECT does not allow arbitrary side-effecting functions; UDFs / procedures are unsupported.
 7. **Produce output**: normalize driver values → confirm column permissions → apply Mask, including configured regex replacement → enforce row / encoded-byte limits → return structured MCP data and a safe text representation.
 8. **Persist request and audit**: record decisions, duration, rule matches, truncation, and safe errors. Runtime logs exclude parameters, raw results, and secrets.
+
+Database access failures during preparation are recorded as `failed`, before approval creation; hard policy denials remain `denied`. If an approved request fails its database recheck, a conditional update marks it failed only while still approved, clears its executable payload, and cannot overwrite a concurrently claimed write. Resuming that failed request never executes it.
+
+The authenticated Admin SSE stream additionally emits `database-failed` with `request_id`, `instance_id`, `instance_name`, `database`, `phase` (`preparation`, `recheck`, or `execution`), and a safe `reason`. It contains no SQL or parameters. The desktop shows native failure dialogs even without a WebView; repeated failures for one instance are coalesced for 60 seconds and while its dialog remains open. These live alerts are not replayed after an event-stream disconnect; access logs remain authoritative.
 
 Write `RETURNING` / `OUTPUT` values use the same output path. `db_query` accepts queries and `db_execute` authorized DML; changing tool names cannot bypass policy. Schema tools filter visibility and exclude denied columns. Describe returns no sample values.
 

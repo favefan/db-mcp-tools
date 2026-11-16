@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"slices"
 	"strings"
@@ -60,22 +59,17 @@ func discoveryInstance(i model.Instance) model.Instance {
 	return i
 }
 
-// Discover uses each engine's metadata through the existing drivers. It opens a
-// short-lived control connection, so unsaved configurations never share a pool.
+// Discover reuses the saved instance's pool, including its initial database.
+// Database visibility is still queried on every call rather than cached.
 func (m *Manager) Discover(ctx context.Context, i model.Instance) ([]string, error) {
 	if err := validateEndpoint(i); err != nil {
 		return nil, err
 	}
 	i = discoveryInstance(i)
-	driver, dsn, err := DSN(i)
+	p, err := m.get(i)
 	if err != nil {
 		return nil, err
 	}
-	db, err := sql.Open(driver, dsn)
-	if err != nil {
-		return nil, errors.New("driver unavailable")
-	}
-	defer db.Close()
 	query := map[string]string{
 		"postgres":  "SELECT datname FROM pg_catalog.pg_database WHERE datallowconn AND NOT datistemplate AND has_database_privilege(current_user,oid,'CONNECT') ORDER BY datname",
 		"mysql":     "SHOW DATABASES",
@@ -85,10 +79,9 @@ func (m *Manager) Discover(ctx context.Context, i model.Instance) ([]string, err
 	if query == "" {
 		return nil, errors.New("driver unavailable")
 	}
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := p.db.QueryContext(ctx, query)
 	if err != nil {
-		diagnosticFailure(ctx, i, "databases.discover", err)
-		return nil, errors.New("database discovery failed; check account access and initial database")
+		return nil, failure(ctx, i, "databases.discover", "database discovery failed; check connection, account access and initial database", err)
 	}
 	defer rows.Close()
 	out := []string{}
@@ -105,11 +98,19 @@ func (m *Manager) Discover(ctx context.Context, i model.Instance) ([]string, err
 		}
 	}
 	if err = rows.Err(); err != nil {
-		diagnosticFailure(ctx, i, "databases.stream", err)
-		return nil, errors.New("database discovery interrupted")
+		return nil, failure(ctx, i, "databases.stream", "database discovery interrupted", err)
 	}
 	slices.Sort(out)
 	return out, nil
+}
+
+// DiscoverConnection isolates editable, unsaved credentials and endpoints from
+// the saved instance's pools, even when the editor submits an existing ID.
+func DiscoverConnection(ctx context.Context, i model.Instance) ([]string, error) {
+	m := New()
+	defer m.Close()
+	i.ID = model.ID()
+	return m.Discover(ctx, i)
 }
 
 func (m *Manager) Databases(ctx context.Context, i model.Instance) ([]string, error) {
@@ -214,8 +215,7 @@ func (m *Manager) Schemas(ctx context.Context, i model.Instance) ([]string, erro
 	}
 	rows, err := p.db.QueryContext(ctx, queries[i.Driver])
 	if err != nil {
-		diagnosticFailure(ctx, i, "schemas.discover", err)
-		return nil, errors.New("schema discovery failed")
+		return nil, failure(ctx, i, "schemas.discover", "schema discovery failed", err)
 	}
 	defer rows.Close()
 	out := []string{}

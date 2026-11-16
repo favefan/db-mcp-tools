@@ -248,8 +248,7 @@ func (m *Manager) Catalog(ctx context.Context, i model.Instance) ([]model.Column
 	}
 	rows, err := p.db.QueryContext(ctx, q, args...)
 	if err != nil {
-		diagnosticFailure(ctx, i, "schema.query", err)
-		return nil, errors.New("schema discovery failed")
+		return nil, failure(ctx, i, "schema.query", "schema discovery failed", err)
 	}
 	defer rows.Close()
 	out := []model.Column{}
@@ -257,8 +256,7 @@ func (m *Manager) Catalog(ctx context.Context, i model.Instance) ([]model.Column
 		var c model.Column
 		c.Database = i.Connection.Database
 		if err = rows.Scan(&c.Schema, &c.Table, &c.Name, &c.Type, &c.Ordinal); err != nil {
-			diagnosticFailure(ctx, i, "schema.decode", err)
-			return nil, errors.New("schema decoding failed")
+			return nil, failure(ctx, i, "schema.decode", "schema decoding failed", err)
 		}
 		c.DatabaseResource = model.DatabaseResource(c.Database) + "/*"
 		c.Resource = model.DatabaseResource(c.Database, c.Schema, c.Table, c.Name)
@@ -270,8 +268,7 @@ func (m *Manager) Catalog(ctx context.Context, i model.Instance) ([]model.Column
 		}
 	}
 	if err = rows.Err(); err != nil {
-		diagnosticFailure(ctx, i, "schema.stream", err)
-		return nil, errors.New("schema discovery interrupted")
+		return nil, failure(ctx, i, "schema.stream", "schema discovery interrupted", err)
 	}
 	rows.Close()
 	if i.Driver == "postgres" {
@@ -339,8 +336,7 @@ func (m *Manager) Execute(ctx context.Context, i model.Instance, q model.Query, 
 	opts := &sql.TxOptions{ReadOnly: info.Operation == "select" && (i.Driver == "postgres" || i.Driver == "mysql")}
 	tx, err := p.db.BeginTx(ctx, opts)
 	if err != nil {
-		diagnosticFailure(ctx, i, "transaction.begin", err)
-		return r, errors.New("cannot begin target transaction")
+		return r, failure(ctx, i, "transaction.begin", "cannot begin target transaction", err)
 	}
 	defer tx.Rollback()
 	args := make([]any, len(q.Params))

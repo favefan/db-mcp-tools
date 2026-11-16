@@ -159,7 +159,7 @@ func Admin(a *app.App, stop func(), mode string) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
-		names, err := a.DB.Discover(ctx, v)
+		names, err := database.DiscoverConnection(ctx, v)
 		if err != nil {
 			return err
 		}
@@ -560,8 +560,13 @@ func Admin(a *app.App, stop func(), mode string) http.Handler {
 			select {
 			case <-r.Context().Done():
 				return
-			case <-changes:
-				_, _ = fmt.Fprint(w, "event: changed\ndata: {}\n\n")
+			case event := <-changes:
+				if event.Failure != nil {
+					body, _ := json.Marshal(event.Failure)
+					_, _ = fmt.Fprintf(w, "event: database-failed\ndata: %s\n\n", body)
+				} else {
+					_, _ = fmt.Fprint(w, "event: changed\ndata: {}\n\n")
+				}
 				f.Flush()
 			case <-ticker.C:
 				_, _ = fmt.Fprint(w, ": heartbeat\n\n")

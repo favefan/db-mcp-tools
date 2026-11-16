@@ -658,6 +658,12 @@ func (s *Store) Finish(id string, r model.Result) error {
 	r.RequestID = id
 	return checkRevision(s.DB.Exec("UPDATE requests SET status=?,result=?,payload=NULL WHERE id=? AND status='executing'", r.Status, s.Seal([]byte(encode(r))), id))
 }
+
+// FailBeforeExecution cannot overwrite a concurrently claimed or finished write.
+func (s *Store) FailBeforeExecution(id string, r model.Result) error {
+	r.RequestID, r.Status = id, "failed"
+	return checkRevision(s.DB.Exec("UPDATE requests SET status='failed',result=?,payload=NULL WHERE id=? AND status='approved'", s.Seal([]byte(encode(r))), id))
+}
 func (s *Store) Audit(v model.Audit) error {
 	_, err := s.DB.Exec("INSERT INTO audit_events(time,entity_id,instance_id,request_id,action,decision,detail,duration_ms) VALUES(?,?,?,?,?,?,?,?)", time.Now().UTC().Format(time.RFC3339), v.EntityID, v.InstanceID, v.RequestID, v.Action, v.Decision, v.Detail, v.DurationMS)
 	if err != nil {

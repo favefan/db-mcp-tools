@@ -538,6 +538,7 @@ async fn events(app: tauri::AppHandle) {
             while let Some(index) = buffer.find("\n\n") {
                 let event = buffer[..index].to_string();
                 buffer.drain(..index + 2);
+                notifications::database_failed(&app, &stamp, &event);
                 if event.contains("event: changed") && profiles::matches(&state, &stamp) {
                     notifications::changed(&app, &profile, &token, &stamp).await;
                     if profiles::matches(&state, &stamp) {
