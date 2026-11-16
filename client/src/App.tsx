@@ -189,8 +189,13 @@ export default function App() {
   }, [approvals.data, registrations.data, notifications]);
   useEffect(() => {
     if (!isTauri()) return;
-    const listener = onAction(() => {
-      setPage(2);
+    const listener = onAction((event) => {
+      const extra = event.notification?.extra ?? {};
+      if (extra.destination === "logs") {
+        if (extra.profile_id !== settledProfile.current || extra.generation !== generation.current)
+          return;
+        setPage(3);
+      } else setPage(2);
       void getCurrentWindow().show();
       void getCurrentWindow().setFocus();
     });
@@ -198,6 +203,28 @@ export default function App() {
       void listener.then((l) => l.unregister());
     };
   }, []);
+  useEffect(() => {
+    if (!isTauri()) return;
+    const listener = listen<{
+      profile_id: string;
+      generation: number;
+      instance_id: string;
+      instance_name: string;
+      request_id: string;
+      message: string;
+    }>("database-failed", ({ payload }) => {
+      if (payload.profile_id !== profile?.id || payload.generation !== session?.generation) return;
+      toast.error(`${payload.instance_name} · 数据库访问失败`, {
+        id: `database-failed-${payload.instance_id}`,
+        description: payload.message,
+        duration: 12000,
+        action: { label: "查看访问日志", onClick: () => setPage(3) },
+      });
+    });
+    return () => {
+      void listener.then((unlisten) => unlisten());
+    };
+  }, [profile?.id, session?.generation]);
   useEffect(() => {
     if (!hasDesktop()) return;
     const refresh = () => void refreshSession().catch((e) => toast.error(errorMessage(e)));

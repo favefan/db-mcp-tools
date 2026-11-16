@@ -8,7 +8,7 @@ Notable changes for users and contributors, listed from newest to oldest.
 
 - Reuse saved instance connection pools for database discovery, avoiding a fresh login for every request while continuing to check current database visibility. Unsaved connection editors remain isolated.
 - Record database discovery, schema access, and execution recheck failures as failed requests rather than permission denials. Failed approved rechecks become terminal without executing SQL or replaying writes.
-- Show native database failure dialogs in foreground and lightweight mode, including the instance, request, and whether approval was reached. Coalesce repeated failures per instance for 60 seconds; optional approval notification preferences do not silence operational alerts.
+- Show database failures as bottom-right in-app toasts, with the instance, approval stage, and a link to access logs. Hidden and lightweight mode use the approval notification channel. Coalesce repeated failures per instance for 60 seconds; optional approval notification preferences do not silence operational alerts.
 
 ## [1.0.14] - 2026-11-13
 

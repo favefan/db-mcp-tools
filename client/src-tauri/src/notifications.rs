@@ -1,10 +1,9 @@
 use crate::{diagnostics, request, Desktop, Profile};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
-use tauri::{Manager, State};
-use tauri_plugin_dialog::DialogExt;
+use tauri::{Emitter, Manager, State};
 use tauri_plugin_notification::NotificationExt;
 
 #[derive(Default)]
@@ -12,17 +11,15 @@ pub struct NotificationState {
     pub enabled: bool,
     seen: HashSet<String>,
     failures: HashMap<String, Instant>,
-    open_failures: HashSet<String>,
 }
 impl NotificationState {
     fn reserve_failure(&mut self, instance: &str, now: Instant) -> bool {
         self.failures
             .retain(|_, time| now.duration_since(*time) < Duration::from_secs(60));
-        if self.open_failures.contains(instance) || self.failures.contains_key(instance) {
+        if self.failures.contains_key(instance) {
             return false;
         }
         self.failures.insert(instance.into(), now);
-        self.open_failures.insert(instance.into());
         true
     }
 
@@ -37,7 +34,7 @@ impl NotificationState {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct DatabaseFailure {
     instance_id: String,
     instance_name: String,
@@ -47,8 +44,8 @@ struct DatabaseFailure {
     request_id: String,
 }
 
-// Operational failures are mandatory dialogs, independent of optional approval
-// notifications. Native dialogs also work while the WebView is released.
+// Foreground failures use the app's bottom-right toast; hidden/lightweight mode
+// uses the same notification channel as approvals. Neither interrupts with a modal.
 pub fn database_failed(app: &tauri::AppHandle, stamp: &crate::profiles::Stamp, event: &str) {
     if !event.lines().any(|line| line == "event: database-failed") {
         return;
@@ -76,25 +73,30 @@ pub fn database_failed(app: &tauri::AppHandle, stamp: &crate::profiles::Stamp, e
             "recheck" => "执行前复查失败，SQL 未执行。该请求已失败，请恢复连接后重新提交。",
             _ => "数据库执行阶段失败，请在访问日志中检查请求结果。",
         };
-        let message = format!(
-            "实例：{}\n数据库：{}\n\n{}\n请检查网络、数据库服务及安全软件拦截记录。\n\n原因：{}\n请求 ID：{}\n\n详细记录见访问日志。同一实例的重复故障在 60 秒内合并提示。",
-            failure.instance_name, failure.database, stage, failure.reason, failure.request_id
-        );
-        let callback_app = handle.clone();
-        handle
-            .dialog()
-            .message(message)
-            .title("数据库访问失败")
-            .kind(tauri_plugin_dialog::MessageDialogKind::Error)
-            .show(move |_| {
-                let state = callback_app.state::<Desktop>();
-                if crate::profiles::matches(&state, &stamp) {
-                    if let Ok(mut n) = state.notifications.lock() {
-                        n.open_failures.remove(&failure.instance_id);
-                    }
-                }
-            });
-        diagnostics::event("notification.database_failed", serde_json::json!({"request_id":failure.request_id}));
+        let visible = handle
+            .get_webview_window("main")
+            .is_some_and(|window| window.is_visible().unwrap_or(false));
+        let result = if visible {
+            handle
+                .emit("database-failed", serde_json::json!({
+                    "profile_id":stamp.profile_id,"generation":stamp.generation,
+                    "instance_id":failure.instance_id,"instance_name":failure.instance_name,
+                    "request_id":failure.request_id,"message":stage
+                }))
+                .map_err(|e| e.to_string())
+        } else {
+            handle
+                .notification()
+                .builder()
+                .title(format!("DB MCP Tools · {} 数据库访问失败", failure.instance_name))
+                .body(format!("{stage} 详细信息请打开访问日志。"))
+                .extra("destination", "logs")
+                .extra("profile_id", &stamp.profile_id)
+                .extra("generation", stamp.generation)
+                .show()
+                .map_err(|e| e.to_string())
+        };
+        diagnostics::event("notification.database_failed", serde_json::json!({"request_id":failure.request_id,"succeeded":result.is_ok(),"foreground":visible}));
     });
 }
 
@@ -199,15 +201,13 @@ pub async fn changed(
 mod tests {
     use super::*;
     #[test]
-    fn database_failure_dialogs_are_mandatory_and_coalesce_per_instance() {
+    fn database_failure_toasts_coalesce_per_instance() {
         let mut state = NotificationState::default();
         let now = Instant::now();
         assert!(!state.enabled);
         assert!(state.reserve_failure("one", now));
-        assert!(!state.reserve_failure("one", now + Duration::from_secs(61)));
-        state.open_failures.remove("one");
+        assert!(!state.reserve_failure("one", now + Duration::from_secs(59)));
         assert!(state.reserve_failure("one", now + Duration::from_secs(62)));
-        state.open_failures.remove("one");
         assert!(!state.reserve_failure("one", now + Duration::from_secs(63)));
         assert!(state.reserve_failure("two", now + Duration::from_secs(63)));
     }
