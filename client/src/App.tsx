@@ -204,28 +204,6 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!isTauri()) return;
-    const listener = listen<{
-      profile_id: string;
-      generation: number;
-      instance_id: string;
-      instance_name: string;
-      request_id: string;
-      message: string;
-    }>("database-failed", ({ payload }) => {
-      if (payload.profile_id !== profile?.id || payload.generation !== session?.generation) return;
-      toast.error(`${payload.instance_name} · 数据库访问失败`, {
-        id: `database-failed-${payload.instance_id}`,
-        description: payload.message,
-        duration: 12000,
-        action: { label: "查看访问日志", onClick: () => setPage(3) },
-      });
-    });
-    return () => {
-      void listener.then((unlisten) => unlisten());
-    };
-  }, [profile?.id, session?.generation]);
-  useEffect(() => {
     if (!hasDesktop()) return;
     const refresh = () => void refreshSession().catch((e) => toast.error(errorMessage(e)));
     if (!bootstrapped.current) {

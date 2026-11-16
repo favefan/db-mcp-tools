@@ -33,7 +33,7 @@ The official single-instance plugin lets a repeated Start menu launch restore th
 
 Rust handles new approval notifications during lightweight mode, respecting notification preferences and deduplicating against requests already seen by the frontend. Notifications direct users to reopen the window through the tray.
 
-Database access failures use bottom-right in-app toasts with a link to access logs. Hidden and lightweight mode use the same notification channel as approvals. These alerts identify the instance and distinguish failures before approval from execution failures. They are independent of optional approval notifications, are scoped to the current profile session, and coalesce repeated failures for one instance for 60 seconds.
+Database access failures use the same desktop notification channel as new approvals, in foreground, hidden, and lightweight mode. These alerts identify the instance and distinguish failures before approval from execution failures. They are independent of optional approval notifications, are scoped to the current profile session, and coalesce repeated failures for one instance for 60 seconds. When the frontend is present, clicking a failure notification opens access logs.
 
 Diagnostics are separate from business audit and remain exportable while disconnected. See [Diagnostics](diagnostics.md).
 

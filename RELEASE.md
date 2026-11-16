@@ -6,7 +6,7 @@ Client and MCP Server **1.0.15** fix database connection reuse, failure reportin
 
 - Database discovery for saved instances reuses the initial database's connection pool instead of creating a new login for each request. Current database visibility is still checked on every call, and unsaved connection edits remain isolated.
 - Connection and metadata failures appear as failed requests in access logs, with safe reasons preserved in request details. Permission denials still appear as denied.
-- Database failures appear as bottom-right in-app toasts identifying the instance and approval stage, with a link to access logs. Hidden and lightweight mode use the same notification channel as approvals, independently of optional approval notifications. Repeated failures for one instance are coalesced for 60 seconds.
+- Database failures use the same desktop notification channel as new approvals, identifying the instance and approval stage, in both foreground and lightweight mode. These alerts work independently of optional approval notifications. Repeated failures for one instance are coalesced for 60 seconds.
 - If connectivity fails during an approved request's execution recheck, the request becomes failed without executing SQL. Resuming it cannot silently execute the old write after connectivity returns; submit a new request for normal approval.
 
 ## Downloads
