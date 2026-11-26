@@ -224,6 +224,8 @@ func TestContainerPipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer session.Close()
+	schema, _, _ := strings.Cut(table, ".")
+	objectMetadata(t, ctx, session, db, s, i, binding, schema)
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "db_query", Arguments: query("SELECT email AS e FROM "+table+" WHERE id="+parameter, "mcp", "db_query", 1)})
 	if err != nil || result.IsError {
 		t.Fatalf("MCP %v %#v", err, result)

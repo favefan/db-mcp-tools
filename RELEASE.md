@@ -1,31 +1,26 @@
-# DB MCP Tools v1.0.15
+# DB MCP Tools v1.0.16
 
-Client and MCP Server **1.0.15** fix database connection reuse, failure reporting, and operational alerts.
+MCP Server **1.0.16** adds dedicated tools for inspecting tables, views, primary keys, and indexes.
 
 ## Highlights
 
-- Database discovery for saved instances reuses the initial database's connection pool instead of creating a new login for each request. Current database visibility is still checked on every call, and unsaved connection edits remain isolated.
-- Connection and metadata failures appear as failed requests in access logs, with safe reasons preserved in request details. Permission denials still appear as denied.
-- Database failures use the same desktop notification channel as new approvals, identifying the instance and approval stage, in both foreground and lightweight mode. These alerts work independently of optional approval notifications. Repeated failures for one instance are coalesced for 60 seconds.
-- If connectivity fails during an approved request's execution recheck, the request becomes failed without executing SQL. Resuming it cannot silently execute the old write after connectivity returns; submit a new request for normal approval.
+- `list_views` lists authorized ordinary views and can filter by schema.
+- `describe_table` keeps its existing column fields and adds the object kind, column nullability, primary-key column order, and supported indexes.
+- Metadata follows the configured database scope, column permissions, and Mask deny rules. A primary key or index is omitted if any of its columns is hidden. The server reads metadata without querying business rows.
 
 ## Downloads
 
 | File                                                         | Purpose                                               |
 | ------------------------------------------------------------ | ----------------------------------------------------- |
-| `db-mcp-tools-client-bundled-1.0.15-windows-amd64.setup.exe` | Desktop client with MCP Server 1.0.15                 |
-| `db-mcp-tools-client-none-1.0.15-windows-amd64.setup.exe`    | Desktop client for a separately maintained MCP Server |
-| `dbmcp-server-1.0.15-windows-amd64.zip`                      | MCP Server, CLI, and STDIO Bridge                     |
+| `db-mcp-tools-client-bundled-1.0.16-windows-amd64.setup.exe` | Desktop client with MCP Server 1.0.16                 |
+| `db-mcp-tools-client-none-1.0.16-windows-amd64.setup.exe`    | Desktop client for a separately maintained MCP Server |
+| `dbmcp-server-1.0.16-windows-amd64.zip`                      | MCP Server, CLI, and STDIO Bridge                     |
 | `SHA256SUMS`                                                 | Release attachment checksums                          |
 
-Client build manifests and `source-maps.zip` are also attached. Installers are unsigned. Public packages include PostgreSQL, MySQL, and SQL Server drivers; optional local DM8 builds are excluded.
+Client build manifests and `source-maps.zip` are also attached. Installers are unsigned. Public packages include PostgreSQL, MySQL, and SQL Server drivers. DM8 is available through an optional local build.
 
 ## Upgrading
 
-Update both client and MCP Server to 1.0.15 for database failure notifications. Older compatible servers remain connectable; the minimum API compatibility version remains 1.0.2. There is no SQLite schema or backup format change. Existing historical events retain their original decisions.
+Update the MCP Server to 1.0.16 and reconnect the agent to refresh the MCP tool list. The bundled Windows installer updates managed local MCP Servers. Independently maintained servers use the standalone server package. The minimum client API compatibility remains 1.0.2.
 
-Write approval is created only after database scope, schema, and SQL authorization checks succeed. A connection failure before these checks completes the request as failed without creating a pending approval.
-
-The bundled Windows installer updates managed local MCP Servers while preserving data, credentials, and upgrade snapshots. Independently maintained servers require a separate server update.
-
-See the [user guide](docs/user-guide.md), [development guide](docs/development.md), and [changelog](CHANGELOG.md).
+See the [user guide](docs/user-guide.md), [supported metadata scope](docs/dependencies.md#sql-and-database-boundaries), and [changelog](CHANGELOG.md).

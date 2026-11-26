@@ -227,25 +227,49 @@ func (m *Manager) testConnection(ctx context.Context, i model.Instance) error {
 	return nil
 }
 func (m *Manager) Catalog(ctx context.Context, i model.Instance) ([]model.Column, error) {
+	return m.catalog(ctx, i, "", "", nil)
+}
+
+func (m *Manager) TableColumns(ctx context.Context, i model.Instance, schema, table string) ([]model.Column, map[string]bool, error) {
+	nullable := map[string]bool{}
+	cols, err := m.catalog(ctx, i, schema, table, nullable)
+	return cols, nullable, err
+}
+
+func (m *Manager) catalog(ctx context.Context, i model.Instance, schema, table string, nullable map[string]bool) ([]model.Column, error) {
 	p, err := m.get(i)
 	if err != nil {
 		return nil, err
 	}
-	q := "SELECT table_schema,table_name,column_name,data_type,ordinal_position FROM information_schema.columns WHERE table_catalog="
+	var q, target string
+	order := ` ORDER BY table_schema,table_name,ordinal_position`
 	args := []any{i.Connection.Database}
 	switch i.Driver {
 	case "postgres":
-		q = "SELECT table_schema,table_name,column_name,CASE WHEN data_type='USER-DEFINED' THEN udt_name ELSE data_type END,ordinal_position FROM information_schema.columns WHERE table_catalog=$1 ORDER BY table_schema,table_name,ordinal_position"
+		q = `SELECT table_schema,table_name,column_name,CASE WHEN data_type='USER-DEFINED' THEN udt_name ELSE data_type END,ordinal_position,is_nullable FROM information_schema.columns WHERE table_catalog=$1`
+		target = ` AND table_schema=$2 AND table_name=$3`
 	case "mysql":
-		q = "SELECT table_schema,table_name,column_name,data_type,ordinal_position FROM information_schema.columns WHERE BINARY table_schema=BINARY ? ORDER BY table_schema,table_name,ordinal_position"
+		q = `SELECT table_schema,table_name,column_name,data_type,ordinal_position,is_nullable FROM information_schema.columns WHERE BINARY table_schema=BINARY ?`
+		target = ` AND BINARY table_name=BINARY ?`
 	case "sqlserver":
-		q += "@p1 ORDER BY table_schema,table_name,ordinal_position"
+		q = `SELECT table_schema,table_name,column_name,data_type,ordinal_position,is_nullable FROM information_schema.columns WHERE table_catalog=@p1`
+		target = ` AND table_schema=@p2 AND table_name=@p3`
 	case "dm":
-		q = "SELECT OWNER,TABLE_NAME,COLUMN_NAME,DATA_TYPE,COLUMN_ID FROM ALL_TAB_COLUMNS ORDER BY OWNER,TABLE_NAME,COLUMN_ID"
+		q = `SELECT OWNER,TABLE_NAME,COLUMN_NAME,DATA_TYPE,COLUMN_ID,NULLABLE FROM SYS.ALL_TAB_COLUMNS WHERE 1=1`
+		target = ` AND OWNER=:1 AND TABLE_NAME=:2`
+		order = ` ORDER BY OWNER,TABLE_NAME,COLUMN_ID`
 		args = nil
 	default:
 		return nil, errors.New("driver unavailable")
 	}
+	if table != "" {
+		q += target
+		if i.Driver != "mysql" {
+			args = append(args, schema)
+		}
+		args = append(args, table)
+	}
+	q += order
 	rows, err := p.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, failure(ctx, i, "schema.query", "schema discovery failed", err)
@@ -255,8 +279,15 @@ func (m *Manager) Catalog(ctx context.Context, i model.Instance) ([]model.Column
 	for rows.Next() {
 		var c model.Column
 		c.Database = i.Connection.Database
-		if err = rows.Scan(&c.Schema, &c.Table, &c.Name, &c.Type, &c.Ordinal); err != nil {
+		var nullability string
+		if err = rows.Scan(&c.Schema, &c.Table, &c.Name, &c.Type, &c.Ordinal, &nullability); err != nil {
 			return nil, failure(ctx, i, "schema.decode", "schema decoding failed", err)
+		}
+		if table != "" && (c.Schema != schema || c.Table != table) {
+			continue
+		}
+		if nullable != nil {
+			nullable[c.Name] = nullability == "YES" || nullability == "Y"
 		}
 		c.DatabaseResource = model.DatabaseResource(c.Database) + "/*"
 		c.Resource = model.DatabaseResource(c.Database, c.Schema, c.Table, c.Name)
@@ -271,7 +302,7 @@ func (m *Manager) Catalog(ctx context.Context, i model.Instance) ([]model.Column
 		return nil, failure(ctx, i, "schema.stream", "schema discovery interrupted", err)
 	}
 	rows.Close()
-	if i.Driver == "postgres" {
+	if i.Driver == "postgres" && len(out) > 0 {
 		postgresMetadata(ctx, p.db, out)
 	}
 	return out, nil

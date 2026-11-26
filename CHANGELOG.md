@@ -4,6 +4,11 @@ Notable changes for users and contributors, listed from newest to oldest.
 
 ## [Unreleased]
 
+## [1.0.16] - 2026-11-26
+
+- Add `list_views` for authorized ordinary views. Expand `describe_table` to report object kind, column nullability, ordered primary keys, and supported indexes while preserving the existing column fields.
+- Apply the same database scope, column permissions, and Mask deny rules to object metadata. Omit an entire primary key or index when any of its columns is hidden.
+
 ## [1.0.15] - 2026-11-16
 
 - Reuse saved instance connection pools for database discovery, avoiding a fresh login for every request while continuing to check current database visibility. Unsaved connection editors remain isolated.

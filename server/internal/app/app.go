@@ -186,24 +186,34 @@ func (a *App) Databases(ctx context.Context, id model.Identity, instanceID strin
 	}
 	return slices.DeleteFunc(names, func(name string) bool { return !i.Policy.AllowsDatabase(name) || !b.Policy.AllowsDatabase(name) }), nil
 }
-func (a *App) Catalog(ctx context.Context, id model.Identity, instanceID string, names ...string) ([]model.Column, error) {
+func (a *App) catalogTarget(ctx context.Context, id model.Identity, instanceID, name string) (context.Context, context.CancelFunc, model.Instance, model.Binding, error) {
 	i, b, err := a.policies(id, instanceID)
 	if err != nil {
-		return nil, err
+		return nil, nil, i, b, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(min(i.Policy.TimeoutSeconds, b.Policy.TimeoutSeconds))*time.Second)
-	defer cancel()
+	i, err = a.DB.Select(ctx, i, name)
+	if err != nil {
+		cancel()
+		return nil, nil, i, b, err
+	}
+	if !i.Policy.AllowsDatabase(i.Connection.Database) || !b.Policy.AllowsDatabase(i.Connection.Database) {
+		cancel()
+		return nil, nil, i, b, storage.ErrDenied
+	}
+	return ctx, cancel, i, b, nil
+}
+
+func (a *App) Catalog(ctx context.Context, id model.Identity, instanceID string, names ...string) ([]model.Column, error) {
 	name := ""
 	if len(names) > 0 {
 		name = names[0]
 	}
-	i, err = a.DB.Select(ctx, i, name)
+	ctx, cancel, i, b, err := a.catalogTarget(ctx, id, instanceID, name)
 	if err != nil {
 		return nil, err
 	}
-	if !i.Policy.AllowsDatabase(i.Connection.Database) || !b.Policy.AllowsDatabase(i.Connection.Database) {
-		return nil, storage.ErrDenied
-	}
+	defer cancel()
 	cols, err := a.DB.Catalog(ctx, i)
 	if err != nil {
 		return nil, err

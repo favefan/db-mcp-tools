@@ -30,6 +30,8 @@ Backup deletion uses the pinned Go toolchain's standard `os.Root` directory hand
 
 Common SELECT / DML, read CTEs, aliases, JOINs, subqueries, and field provenance checks are supported. Write CTEs, multiple statements, unknown provenance, and unsupported syntax are explicitly rejected or handled under the common write policy. Cross-database joins, arbitrary stored procedures, arbitrary SQL rewriting, and complete cross-dialect lineage are outside the current scope.
 
+Metadata tools use fixed, parameterized queries against each driver’s catalog through the existing `database/sql` connection. `describe_table` returns ordinary table and view metadata. The index list covers indexes on named columns and excludes expression or partial indexes and SQL Server index types other than conventional clustered and nonclustered indexes. View definitions, materialized views, full DDL, and foreign keys are outside this metadata scope.
+
 Instances maintain pools per exact database while sharing the instance concurrency limit. Discovery, resource scope, SQL checks, and pre-execution rechecks use the same authorization. User-configured instance Mask rules and additional entity rules pass through the same result pipeline.
 
 PostgreSQL Explain returns non-executing plans and estimates only; other dialects do not expose Explain. PostGIS / TimescaleDB support is limited to basic recognition and metadata display. The object tree loads a full catalog per database without virtualization or in-tree search; select whole databases or schemas when catalogs are large.

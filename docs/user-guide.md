@@ -55,7 +55,7 @@ Identity follows the independent random credential, not mutable or spoofable nam
 
 Installation failure revokes the new credential. Unrelated entries with the same name are not overwritten. Changed files require another preview. Unrelated JSON values, TOML sections and comments, and original line endings are preserved. Do not commit project files containing credentials.
 
-Restart the agent or reconnect MCP after installation. Tools include `list_instances`, `list_databases`, `list_schemas`, `list_tables`, `describe_table`, `db_query`, `db_execute`, `db_explain`, `approval_status`, and `resume_request`.
+Restart the agent or reconnect MCP after installation. Tools include `list_instances`, `list_databases`, `list_schemas`, `list_tables`, `list_views`, `describe_table`, `db_query`, `db_execute`, `db_explain`, `approval_status`, and `resume_request`.
 
 Removal deletes only this tool's unchanged entry and revokes its installation credential. Modified entries remain, but their old credential is still revoked. Rotating other credentials requires updating the corresponding agent configuration. Tokens are shown only when issued.
 
@@ -66,6 +66,8 @@ For other clients, issue or rotate a credential in Entities, enter the MCP URL, 
 Resources and operations are the intersection of instance and binding policy. Both source CIDRs must match; limits use the smaller value. Authorized reads are allowed and writes require approval by default. DDL, procedures, dynamic SQL, multiple statements, and unknown provenance are denied. Approval cannot override hard denials.
 
 An instance may grant one, selected, or all databases. PostgreSQL and SQL Server use database → schema → table → column. MySQL combines database and schema, displaying database → table → column. A DM8 endpoint exposes one actual database, with user / schema → table → column beneath it. Empty schemas can be authorized, including future objects. Discovery is limited by the database account's visibility.
+
+Use `list_tables` to discover authorized relations and `list_views` to list authorized ordinary views. Pass `schema` and `table` to `describe_table` for column types, nullability, object kind, ordered primary-key columns, and supported indexes. Indexes and primary keys are returned only when all their columns are visible. The tools use the same database scope, resource grants, and Mask deny rules as catalog discovery.
 
 Agents call `list_databases`, then pass an exact `database` to catalog, query, execution, or Explain tools. Requests target one database; USE and cross-database SQL are unsupported. Multi-database requests without a target are rejected. A single authorized database can still be inferred, and DM8 can infer its endpoint's sole database. Scope discovery works before saving, but grants take effect only after save. Changing the default connection database does not change resource grants. Approvals and remembered rules apply only to their recorded database. The object selector requires MCP Server 1.0.2 or later.
 

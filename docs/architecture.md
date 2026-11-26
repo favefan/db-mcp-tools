@@ -226,14 +226,14 @@ Admin endpoints use `/admin/v1` with cursor pagination, stable error codes, and 
 
 The UI proxies Admin requests and SSE through Rust and updates TanStack Query through Tauri events. Protocol mismatches show upgrade guidance rather than silently trying historical APIs.
 
-| MCP tool                                          | Behavior                                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `list_instances`                                  | Authorized instances only                                                            |
-| `list_databases`                                  | Databases within effective scope                                                     |
-| `list_schemas` / `list_tables` / `describe_table` | Resource-filtered catalog discovery                                                  |
-| `db_query` / `db_execute`                         | Instance, database, SQL, parameters, client request ID; queries and DML respectively |
-| `db_explain`                                      | PostgreSQL non-executing plans                                                       |
-| `approval_status` / `resume_request`              | Inspect / resume the original request without replacing SQL                          |
+| MCP tool                                                         | Behavior                                                                             |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `list_instances`                                                 | Authorized instances only                                                            |
+| `list_databases`                                                 | Databases within effective scope                                                     |
+| `list_schemas` / `list_tables` / `list_views` / `describe_table` | Resource-filtered catalog discovery and object metadata                              |
+| `db_query` / `db_execute`                                        | Instance, database, SQL, parameters, client request ID; queries and DML respectively |
+| `db_explain`                                                     | PostgreSQL non-executing plans                                                       |
+| `approval_status` / `resume_request`                             | Inspect / resume the original request without replacing SQL                          |
 
 One CLI provides `serve`, `run start|stop|restart|status`, `service install|uninstall|start|stop|restart|status`, `instances`, `entities`, `approvals`, `backup`, `restore`, and `bridge`, plus runtime deployment operations. Management commands call Admin; lifecycle commands operate locally. Offline restore explicitly requires shutdown.
 
